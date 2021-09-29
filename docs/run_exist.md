@@ -57,8 +57,6 @@ See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/base
  To run CAT:  
 `./commands/til_classification/asc/run_train_bert_kim_cat_ncl.sh`     
 
-You can check the full list of baselines [here](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_own.md).
-
  ### Results:
 The example results will be saved in `./res/til_classification/asc/`
  
