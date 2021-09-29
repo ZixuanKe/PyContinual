@@ -5,6 +5,7 @@
 
 
 
+
 ## Run the Existing Baselines
 We have implemented **40+** baselines, you can simply run them using the corresponding scripts
 
@@ -42,7 +43,7 @@ See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/base
 
 	`./commands/[d/t]il_classification/[dataset]/`
 	[d/t]: indicate task incremental learning (TIL) or domain incremental (DIL)
-	[dataset]: indicate your datasets (see dataload to see the possible datasets, e.g. asc, dsc, ss, nli...)
+	[dataset]: indicate your datasets (see ./dataloader to see the available datasets, e.g. asc, dsc, nli...)
 	
    
 
