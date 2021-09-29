@@ -5,6 +5,7 @@
 
 
 
+
 # PyContinual (An Easy Extendible Framework for Continual Learning)
 
 This repository contains the code for the following papers:
@@ -65,7 +66,8 @@ If using this code, parts of it, or developments from it, please consider cite t
     
 ## Contact
 
-Please drop an email to [Zixuan Ke](zke4@uic.edu), [Xingchang Huang](huangxch3@gmail.com) or [Nianzu Ma](jingyima005@gmail.com) if you have any questions regarding to the code. We thank [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/) for their valuable comments and opinioins.
+
+Please drop an email to [Zixuan Ke](mailto:zke4@uic.edu), [Xingchang Huang](mailto:huangxch3@gmail.com) or [Nianzu Ma](mailto:jingyima005@gmail.com) if you have any questions regarding to the code. We thank [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/) for their valuable comments and opinioins.
 
 
 
