@@ -11,6 +11,8 @@ do
     --experiment bert \
     --note random$id \
     --ntasks 19 \
+    --task asc \
+    --scenario til_classification \
     --idrandom $id \
     --output_dir './OutputBert' \
     --approach bert_gru_kan_ncl
