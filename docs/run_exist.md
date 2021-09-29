@@ -4,8 +4,14 @@
 
 
 
+
 ## Run the Existing Baselines
 We have implemented **40+** baselines, you can simply run them using the corresponding scripts
+
+### Setup
+
+ - Firstly, download the availabele data in [Drive](https://drive.google.com/file/d/10hCJHDKYVw0tzSHk6YZrRMFsqNs57fzW/view?usp=sharing). Unzip it in the root folder. After doing that, your should see `./dat` and `./data` in the root folder
+ -  Secondly, go to the `./data_prep`, find the needed task sequence. Move it out to the root folder
 
 ### Format
     `run_train_[network]_[approach_specification]_[approach].sh`
@@ -30,7 +36,7 @@ We have implemented **40+** baselines, you can simply run them using the corresp
  - **mtl**: a non-continual learning which trains all task together via multi-task learning
 
 ### Approach Specification
-See [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)
+See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)
 
 ### Commands Location
 

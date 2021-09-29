@@ -34,7 +34,7 @@ Recently, continual learning approaches have drawn more and more attention. This
 * If you want to run the existing systems, please see [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)
 * If you want to expand the framework with your own model, please see  [run_own.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_own.md)
 * If you want to see the full list of baselines and variants, please see [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)
-* [FAQ](faq.md)
+* [FAQ](https://github.com/ZixuanKe/PyContinual/blob/master/docs/faq.md)
 
 
 ## Reference

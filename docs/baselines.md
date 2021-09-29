@@ -4,7 +4,7 @@
 
 
 ## Full List of Implemented Baselines
-You can run different baselines by simply replacing the `[approch_specification]` and `[network]` (see [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)) with different baselines indicator and network indicator. The full list is as follows:
+You can run different baselines by simply replacing the `[approch_specification]` and `[network]` (see [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)) with different baselines indicator and network indicator. The full list so far is as follows:
 
  
 | Model Name | Baseline Indicator| Network Indicator
