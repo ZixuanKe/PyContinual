@@ -323,6 +323,10 @@ class Appr(object):
             for m in masks:
                 reg+=m.sum()
                 count+=np.prod(m.size()).item()
+
+        print('reg: ',reg)
+        print('count: ',count)
+
         reg/=count
         return self.ce(outputs,targets)+self.lamb*reg,reg
 

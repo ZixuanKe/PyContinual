@@ -32,6 +32,12 @@ elif args.task == 'nli': #aspect sentiment classication
     elif 'bert' in args.experiment: #all others
         from dataloaders.nli import bert as dataloader
 
+elif args.task == 'newsgroup': #aspect sentiment classication
+    if args.experiment=='w2v':
+        from dataloaders.newsgroup import w2v as dataloader
+    elif 'bert' in args.experiment: #all others
+        from dataloaders.newsgroup import bert as dataloader
+
 # ----------------------------------------------------------------------
 # Image Datasets.
 # ----------------------------------------------------------------------
@@ -167,6 +173,8 @@ elif args.approach=='bert_gen_ncl':
     from approaches.classification import bert_gen_ncl as approach
 elif args.approach=='bert_gen_single_ncl':
     from approaches.classification import bert_gen_single_ncl as approach
+elif args.approach=='bert_capsule_mask_ncl':
+    from approaches.classification import bert_capsule_mask_ncl as approach
 elif args.approach=='bert_adapter_mask_ncl':
     from approaches.classification import bert_adapter_mask_ncl as approach
 elif args.approach=='bert_adapter_mask_ent_ncl':
@@ -315,6 +323,8 @@ elif 'bert_gen_single' in args.approach:
     from networks.classification import bert_gen_single as network
 elif 'bert_gen' in args.approach:
     from networks.classification import bert_gen as network
+elif 'bert_capsule_mask' in args.approach:
+    from networks.classification import bert_capsule_mask as network
 elif 'bert_adapter_grow' in args.approach:
     from networks.classification import bert_adapter_grow as network
 elif 'bert_adapter_mask' in args.approach:

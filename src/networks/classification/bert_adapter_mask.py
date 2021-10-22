@@ -6,6 +6,12 @@ import utils
 from torch import nn
 import torch.nn.functional as F
 import random
+
+
+sys.path.append("./networks/base/")
+from my_transformers import MyBertModel
+
+
 class Net(torch.nn.Module):
 
     def __init__(self,taskcla,args):
@@ -13,24 +19,8 @@ class Net(torch.nn.Module):
         super(Net,self).__init__()
         config = BertConfig.from_pretrained(args.bert_model)
         config.return_dict=False
-        config.apply_bert_output = args.apply_bert_output
-        config.apply_bert_attention_output = args.apply_bert_attention_output
-        config.apply_one_layer_shared = args.apply_one_layer_shared
-        config.apply_two_layer_shared = args.apply_two_layer_shared
-        # config.build_adapter_mask = args.build_adapter_mask  # of course it should be yes
-        config.build_adapter_mask = True
-        config.is_aux = args.is_aux
-        config.mix_type = args.mix_type
-        config.build_adapter = args.build_adapter
-        config.build_adapter_ucl = args.build_adapter_ucl
-        config.build_adapter_owm = args.build_adapter_owm
-        config.build_adapter_grow = args.build_adapter_grow
-        config.build_adapter_attention_mask = args.build_adapter_attention_mask
-        config.build_adapter_two_modules = args.build_adapter_two_modules
-        config.build_adapter_capsule_mask = args.build_adapter_capsule_mask
-        config.build_adapter_capsule = args.build_adapter_capsule
-        config.build_adapter_mlp_mask = args.build_adapter_mlp_mask
-        self.bert = BertModel.from_pretrained(args.bert_model,config=config)
+        self.bert = MyBertModel.from_pretrained(args.bert_model,config=config,args=args)
+
 
         self.args = args
 

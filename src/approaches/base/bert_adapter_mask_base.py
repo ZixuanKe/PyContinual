@@ -30,6 +30,9 @@ from loss_metric_zoo import SupConLoss,DistillKL
 
 
 #TODO: merge with bert_adapter_base.py
+# mask means only KSM and there is no TSM
+
+
 class SoftCrossEntropy(nn.Module):
     def __init__(self):
         super(SoftCrossEntropy, self).__init__()
@@ -90,7 +93,18 @@ class Appr(object):
 
 
         self.tsv_para = \
-           ['bert.encoder.layer.'+str(layer_id)+'.output.adapter_capsule_mask.capsule_net.tsv_capsules.route_weights'
+            ['adapter_capsule_mask.capsule_net.tsv_capsules.route_weights'] + \
+            ['adapter_capsule_mask.route_weights'] + \
+            ['adapter_capsule_mask.capsule_net.semantic_capsules.fc1.' + str(c_t) + '.weight' for c_t in range(self.model.num_task) ] + \
+            ['adapter_capsule_mask.capsule_net.semantic_capsules.fc1.' + str(c_t) + '.bias' for c_t in range(self.model.num_task)] + \
+            ['adapter_capsule_mask.capsule_net.semantic_capsules.fc2.' + str(c_t) + '.weight' for c_t in range(self.model.num_task) ] + \
+            ['adapter_capsule_mask.capsule_net.semantic_capsules.fc2.' + str(c_t) + '.bias' for c_t in range(self.model.num_task) ] + \
+            ['adapter_capsule_mask.fc1.' + str(c_t) + '.weight' for c_t in range(self.model.num_task)] + \
+            ['adapter_capsule_mask.fc1.' + str(c_t) + '.bias' for c_t in range(self.model.num_task) ] + \
+            ['adapter_capsule_mask.fc2.' + str(c_t) + '.weight' for c_t in range(self.model.num_task)] + \
+            ['adapter_capsule_mask.fc2.' + str(c_t) + '.bias' for c_t in range(self.model.num_task) ] + \
+            ['adapter_capsule_mask.capsule_net.tsv_capsules.route_weights'] + \
+            ['bert.encoder.layer.'+str(layer_id)+'.output.adapter_capsule_mask.capsule_net.tsv_capsules.route_weights'
             for layer_id in range(self.model.config.num_hidden_layers)] + \
            ['bert.encoder.layer.'+str(layer_id)+'.output.adapter_capsule_mask.route_weights'
             for layer_id in range(self.model.config.num_hidden_layers)] + \
@@ -437,6 +451,7 @@ class Appr(object):
             for m_key,m_value in masks.items():
                 reg+=m_value.sum()
                 count+=np.prod(m_value.size()).item()
+
         reg/=count
 
         return self.ce(outputs,targets)+self.lamb*reg,reg
