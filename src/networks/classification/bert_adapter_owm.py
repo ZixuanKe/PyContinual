@@ -29,19 +29,19 @@ class Net(torch.nn.Module):
 
         #Only adapters are trainable
 
-        if config.apply_bert_output and config.apply_bert_attention_output:
+        if args.apply_bert_output and args.apply_bert_attention_output:
             adaters = \
                 [self.bert.encoder.layer[layer_id].attention.output.adapter_owm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].attention.output.LayerNorm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.adapter_owm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
 
-        elif config.apply_bert_output:
+        elif args.apply_bert_output:
             adaters = \
                 [self.bert.encoder.layer[layer_id].output.adapter_owm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
 
-        elif config.apply_bert_attention_output:
+        elif args.apply_bert_attention_output:
             adaters = \
                 [self.bert.encoder.layer[layer_id].attention.output.adapter_owm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].attention.output.LayerNorm for layer_id in range(config.num_hidden_layers)]

@@ -31,9 +31,6 @@ class Appr(ApprBase):
 
     def __init__(self,model,logger,taskcla, args=None):
         super().__init__(model=model,logger=logger,taskcla=taskcla,args=args)
-        print('DIL BERT ADAPTER MASK SUP NCL')
-
-
         print('BERT ADAPTER CAPSULE MASK NCL')
 
         return

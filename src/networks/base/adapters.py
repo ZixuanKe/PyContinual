@@ -10,11 +10,6 @@ sys.path.append("./networks/base/")
 from bayes_layer import BayesianLinear,_calculate_fan_in_and_fan_out, BayesianConv2D
 
 
-#TODO: all self.relu, self.gelu should be change to self.activation
-#TODO: adapter_size change to config., also need to change the ./network
-#TODO: is_aux in config.
-
-
 class BertAdapter(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -26,18 +21,8 @@ class BertAdapter(nn.Module):
 
     def forward(self,x,pre_t=None,l=None,start_mixup=False,idx=None):
 
-        if start_mixup and pre_t=='tmix':
-            h=self.activation(self.fc1(x))
-            h=self.activation(self.fc2(h))
-
-            idx_h=self.activation(self.fc1(x[idx]))
-            idx_h=self.activation(self.fc2(idx_h))
-
-            h=l * h + (1-l) * idx_h
-
-        else:
-            h=self.activation(self.fc1(x))
-            h=self.activation(self.fc2(h))
+        h=self.activation(self.fc1(x))
+        h=self.activation(self.fc2(h))
 
         return x + h
         # return h
@@ -62,16 +47,8 @@ class BertAdapterMask(BertAdapter):
 
     def forward(self,x,t,s,smax=400,pre_t=None,l=None,start_mixup=False,idx=None):
 
-        if start_mixup and pre_t=='tmix':
-            gfc1,gfc2=self.mask(t=t,s=smax)
-
-            h = self.get_feature(gfc1,gfc2,x)
-            idx_h = self.get_feature(gfc1,gfc2,x[idx])
-
-            h=l * h + (1-l) * idx_h
-        else:
-            gfc1,gfc2=self.mask(t=t,s=s)
-            h = self.get_feature(gfc1,gfc2,x)
+        gfc1,gfc2=self.mask(t=t,s=s)
+        h = self.get_feature(gfc1,gfc2,x)
 
         return x + h
 
@@ -101,7 +78,9 @@ class BertAdapterMask(BertAdapter):
         return softmaxed_output.view(*transposed_input.size()).transpose(dim, len(input.size()) - 1)
 
 
-
+# --------------------------
+# Belows arefor  CTR
+# --------------------------
 
 class BertAdapterCapsuleMaskImp(BertAdapterMask):
     '''
@@ -122,14 +101,8 @@ class BertAdapterCapsuleMaskImp(BertAdapterMask):
         # task shared
         capsule_output = self.capsule_net(t,x,s)
 
-        # if torch.isinf(capsule_output).any() or torch.isnan(capsule_output).any():
-        #     print('clamp capsule_output')
-        #     clamp_value = torch.finfo(capsule_output.dtype).max - 1000
-        #     capsule_output = torch.clamp(capsule_output, min=-clamp_value, max=clamp_value)
-        #for numerical stable ================
 
         h = x + capsule_output #skip-connection
-        # h = capsule_output #skip-connection
 
         # task specifc
         gfc1,gfc2=self.mask(t=t,s=s)
@@ -140,12 +113,6 @@ class BertAdapterCapsuleMaskImp(BertAdapterMask):
 
             h=self.gelu(self.fc2(h))
             h=h*gfc2.expand_as(h)
-
-            # if torch.isinf(h).any() or torch.isnan(h).any():
-            #     print('clamp h')
-            #     clamp_value = torch.finfo(h.dtype).max - 1000
-            #     h = torch.clamp(h, min=-clamp_value, max=clamp_value)
-            #for numerical stable ================
 
         else:
             h=self.activation(self.fc1(h))
@@ -200,8 +167,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
         elif layer_type=='transfer':
             D = config.semantic_cap_size
             self.Co = config.max_seq_length
-            # Ks = [3,4,5]
-            # Ks = [2,3,4]
 
             if config.semantic_cap_size == 2:
                 Ks = [3,4]
@@ -237,12 +202,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                 self.elarger=torch.nn.Embedding(config.ntasks,config.bert_hidden_size)
                 self.larger=torch.nn.Linear(config.semantic_cap_size*config.num_semantic_cap,config.bert_hidden_size) #each task has its own larger way
 
-            # else: this capsule is with max_length, much slower
-            #     self.route_weights = \
-            #         nn.Parameter(torch.randn(self.num_capsules, self.num_routes, self.in_channel, self.class_dim))
-            #     self.elarger=torch.nn.Embedding(config.ntasks,config.bert_hidden_size)
-            #     self.larger=torch.nn.Linear(config.semantic_cap_size,config.bert_hidden_size) #each task has its own larger way
-
             if  config.no_tsv_mask:
                 self.tsv = torch.ones( config.ntasks,config.ntasks).data.cuda()# for backward
             else:
@@ -254,8 +213,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
 
             D = config.semantic_cap_size*config.num_semantic_cap
             self.Co = 100
-            # Ks = [3,4,5]
-            # Ks = [2,3,4]
 
             Ks = [3,4,5]
 
@@ -278,9 +235,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
             #no routing for max_seq_length
             self.route_weights = \
                 nn.Parameter(torch.randn(config.num_semantic_cap, self.num_routes, config.semantic_cap_size, config.semantic_cap_size))
-
-            # self.elarger=torch.nn.Embedding(config.ntasks,config.bert_hidden_size)
-            # self.larger=torch.nn.Linear(config.semantic_cap_size*config.num_semantic_cap,config.bert_hidden_size) #each task has its own larger way
 
             if config.larger_as_list:
                 self.larger=nn.ModuleList([
@@ -318,12 +272,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
 
             outputs = self.squash(outputs)
 
-            #for numerical stable ================
-            # if torch.isinf(outputs).any() or torch.isnan(outputs).any():
-            #     print('clamp outputs')
-            #     clamp_value = torch.finfo(outputs.dtype).max - 1000
-            #     outputs = torch.clamp(outputs, min=-clamp_value, max=clamp_value)
-            #for numerical stable ================
             return outputs
 
         elif layer_type=='transfer_route':
@@ -337,16 +285,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                 decision_maker = []
                 sim_attn = []
                 for pre_t in range(self.config.ntasks):
-
-                    # if pre_t == t:
-                    #     score = torch.LongTensor([1]).cuda().repeat(batch_size)
-                    #     decision_maker.append(score.view(-1,1))
-                    #
-                    # elif pre_t > t:
-                    #     score = torch.LongTensor([0]).cuda().repeat(batch_size)
-                    #     decision_maker.append(score.view(-1,1))
-
-                    # else:
 
                     #Regarding ASC, for numberical stable, I change relu to gelu
                         cur_v = outputs_list[t] #current_task
@@ -377,30 +315,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                 decision_maker = torch.cat(decision_maker, 1)
                 sim_attn = torch.cat(sim_attn, 2) #TODO: Normalized the similarity
 
-
-                #for numerical stable ================
-                # mask=torch.zeros(config.ntasks).data.cuda()
-                # # print('self.tsv[t]: ',self.tsv[t])
-                # for x_id in range(config.ntasks):
-                #     if self.tsv[t][x_id] == 0: mask[x_id].fill_(-10000) # block future, all previous are the same
-                #
-                # decision_maker = \
-                #     decision_maker.repeat(config.max_seq_length,1).view(1,-1,config.ntasks,1,1)*\
-                #     self.tsv[t].data.view(1,1,-1,1,1) #multiply 0 to future task
-                #
-                # decision_maker = decision_maker + mask.data.view(1,1,-1,1,1) #add a very small negative number; mask for softmax
-                # probs = self.my_softmax(decision_maker, dim=2) #include decision and masking
-                #
-                # vote_outputs = (probs *
-                #     sim_attn.repeat(config.max_seq_length,1,1)
-                #                 .view(config.num_semantic_cap,-1,config.ntasks,1,config.semantic_cap_size) *
-                #     priors).sum(dim=2, keepdim=True) #route
-                #
-                #for numerical stable ================
-                # epsilon=1e-16
-                #for numerical stable ================
-
-
                 vote_outputs = (self.tsv[t].data.view(1,1,-1,1,1) *
                     sim_attn.repeat(self.config.max_seq_length,1,1)
                                 .view(self.config.num_semantic_cap,-1,self.config.ntasks,1,self.config.semantic_cap_size) *
@@ -408,12 +322,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                                 .view(1,-1,self.config.ntasks,1,1) *
                     priors).sum(dim=2, keepdim=True) #route
 
-                #for numerical stable ================
-                # if torch.isinf(vote_outputs).any() or torch.isnan(vote_outputs).any():
-                #     print('clamp vote_outputs')
-                #     clamp_value = torch.finfo(vote_outputs.dtype).max - 1000
-                #     vote_outputs = torch.clamp(vote_outputs, min=-clamp_value, max=clamp_value)
-                #for numerical stable ================
 
                 h_output = vote_outputs.view(batch_size,self.config.max_seq_length,-1)
                 # print('h_output: ',h_output.size())
@@ -429,11 +337,10 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                 return h_output
 
 
-
         elif layer_type=='transfer':
             batch_size = x.size(0)
 
-            if self.config.exp in ['3layer_whole','2layer_whole']: #task,transfer,representation
+            if self.config.exp in ['2layer_whole']: #task,transfer,representation
 
                 outputs_list = list(torch.unbind(x,dim=-1))
                 aspect_v = outputs_list[t] #current_task
@@ -459,43 +366,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
 
                 outputs = torch.cat(outputs_list, dim=-1)
                 # print('outputs: ',outputs.size())
-
-            elif self.config.exp in ['3layer_aspect','2layer_aspect_transfer']: #task,transfer,representation
-                # aspect routing: we know the similar part is actually the aspect.
-                # Why not mannual route by aspect.
-                # instead of using CNN to learn the aspect is important and then route in next layer
-                # need to make use the whole thing at the end, consider "adding" to the to sentence
-
-                outputs_list = list(torch.unbind(x,dim=-1))
-                whole_v = outputs_list[t] #current_task
-                whole_v= whole_v.view(batch_size,self.config.max_seq_length,self.config.semantic_cap_size)
-                aspect_v = whole_v[:,1:1+self.config.max_term_length,:]
-
-                aa = [F.relu(conv(aspect_v.transpose(1, 2))) for conv in self.convs3]  # [(N,Co,L), ...]*len(Ks)
-                aa = [F.max_pool1d(a, a.size(2)).squeeze(2) for a in aa]
-                aspect_v = torch.cat(aa, 1)
-
-                for pre_t in range(self.config.ntasks):
-                    if pre_t != t:
-                        whole_feature = outputs_list[pre_t]
-                        whole_feature= whole_feature.view(batch_size,self.config.max_seq_length,self.config.semantic_cap_size)
-                        feature = whole_feature[:,1:1+self.config.max_term_length,:]
-
-                        z = [F.tanh(conv(feature.transpose(1, 2))) for conv in self.convs1]  # [(N,Co,L), ...]*len(Ks)
-                        y = [F.relu(conv(feature.transpose(1, 2)) + self.fc_aspect(aspect_v).unsqueeze(2)) for conv in self.convs2]
-                        z = [i*j for i, j in zip(z, y)]
-                        z = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in z]  # [(N,Co), ...]*len(Ks)
-                        z = torch.cat(z, 1)
-                        z= z.view(batch_size,self.Co*self.len_ks,1)
-                        outputs_list[pre_t] = z
-                aspect_v= aspect_v.contiguous().view(batch_size,self.Co*self.len_ks,1)
-                outputs_list[t] = aspect_v
-
-                outputs = torch.cat(outputs_list, dim=-1) + x #we still need original sentence
-                # print('outputs: ',outputs.size())
-
-            elif self.config.exp == '2layer_aspect_dynamic':
-                outputs = x
 
 
             return outputs.transpose(2,1)
@@ -618,7 +488,9 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
         scale = squared_norm / (1 + squared_norm)
         return scale * input_tensor / torch.sqrt(squared_norm)
 
-#====================== Belows are OLD B-CL
+# --------------------------
+# Belows arefor  B-CL
+# --------------------------
 
 
 class BertAdapterCapsuleMask(BertAdapterMask):

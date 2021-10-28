@@ -80,11 +80,11 @@ class MyBertSelfOutput(BertSelfOutput):
         super().__init__(config)
 
         if args.use_imp:
-            from networks.classification.adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
-            from networks.classification.adapters import BertAdapterCapsuleImp as BertAdapterCapsule
+            from networks.base.adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
+            from networks.base.adapters import BertAdapterCapsuleImp as BertAdapterCapsule
         else:
-            from networks.classification.adapters import BertAdapterCapsuleMask
-            from networks.classification.adapters import BertAdapterCapsule
+            from networks.base.adapters import BertAdapterCapsuleMask
+            from networks.base.adapters import BertAdapterCapsule
 
 
         if args.apply_bert_attention_output:
@@ -296,11 +296,11 @@ class MyBertOutput(BertOutput):
         super().__init__(config)
 
         if args.use_imp:
-            from networks.classification.adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
-            from networks.classification.adapters import BertAdapterCapsuleImp as BertAdapterCapsule
+            from networks.base.adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
+            from networks.base.adapters import BertAdapterCapsuleImp as BertAdapterCapsule
         else:
-            from networks.classification.adapters import BertAdapterCapsuleMask
-            from networks.classification.adapters import BertAdapterCapsule
+            from networks.base.adapters import BertAdapterCapsuleMask
+            from networks.base.adapters import BertAdapterCapsule
 
 
         if args.apply_bert_output:

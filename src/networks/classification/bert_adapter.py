@@ -26,14 +26,14 @@ class Net(torch.nn.Module):
 
         #Only adapters are trainable
 
-        if config.apply_bert_output and config.apply_bert_attention_output:
+        if args.apply_bert_output and args.apply_bert_attention_output:
             adaters = \
                 [self.bert.encoder.layer[layer_id].attention.output.adapter for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].attention.output.LayerNorm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.adapter for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
 
-        elif config.apply_bert_output:
+        elif args.apply_bert_output:
             adaters = \
                 [self.bert.encoder.layer[layer_id].output.adapter for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
@@ -67,20 +67,11 @@ class Net(torch.nn.Module):
     def forward(self,input_ids, segment_ids, input_mask,start_mixup=None,l=None,idx=None,mix_type=None):
         output_dict = {}
 
-        if start_mixup and mix_type is not None and 'tmix' in mix_type:
-            print('tmix: ')
 
-            sequence_output,pooled_output = \
-                self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,
-                          start_mixup=start_mixup,l=l,idx=idx,pre_t='tmix')
-            pooled_output = self.dropout(pooled_output)
-            # print('tmix')
-        else:
-            print('others: ')
-            sequence_output, pooled_output = \
-                self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
-            pooled_output = self.dropout(pooled_output)
-            #shared head
+        sequence_output, pooled_output = \
+            self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
+        pooled_output = self.dropout(pooled_output)
+        #shared head
 
         if 'dil' in self.args.scenario:
             y = self.last(pooled_output)

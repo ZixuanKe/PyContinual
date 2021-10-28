@@ -119,12 +119,20 @@ elif args.approach=='w2v_gru_srk_ncl':
     from approaches.classification import w2v_rnn_srk_ncl as approach
 if args.approach == 'w2v_kim_derpp_ncl':
     from approaches.classification import w2v_cnn_derpp_ncl as approach
+elif args.approach == 'w2v_kim_a-gem_ncl':
+    from approaches.classification import w2v_cnn_agem_ncl as approach
+elif args.approach == 'w2v_kim_l2_ncl':
+    from approaches.classification import w2v_cnn_l2_ncl as approach
 
 # Args -- Approach
 if args.approach == 'bert_kim_ucl_ncl':
     from approaches.classification import bert_cnn_ucl_ncl as approach
 if args.approach == 'bert_kim_derpp_ncl':
     from approaches.classification import bert_cnn_derpp_ncl as approach
+elif args.approach == 'bert_kim_gem_ncl':
+    from approaches.classification import bert_cnn_gem_ncl as approach
+elif args.approach == 'bert_kim_a-gem_ncl':
+    from approaches.classification import bert_cnn_agem_ncl as approac
 elif args.approach == 'bert_kim_owm_ncl':
     from approaches.classification import bert_cnn_owm_ncl as approach
 elif args.approach=='bert_one':
@@ -183,16 +191,16 @@ elif args.approach=='bert_adapter_capsule_mask_ent_ncl':
     from approaches.classification import bert_adapter_capsule_mask_ent_ncl as approach
 elif args.approach=='bert_adapter_ewc_ncl':
     from approaches.classification import bert_adapter_ewc_ncl as approach
+elif args.approach == 'bert_adapter_a-gem_ncl':
+    from approaches.classification import bert_adapter_agem_ncl as approach
+elif args.approach == 'bert_adapter_gem_ncl':
+    from approaches.classification import bert_adapter_gem_ncl as approach
+elif args.approach=='bert_adapter_l2_ncl':
+    from approaches.classification import bert_adapter_l2_ncl as approach
 elif args.approach=='bert_adapter_owm_ncl':
     from approaches.classification import bert_adapter_owm_ncl as approach
-elif args.approach=='bert_adapter_attention_mask_ncl':
-    from approaches.classification import bert_adapter_attention_mask_ncl as approach
-elif args.approach=='bert_adapter_two_modules_mask_ncl':
-    from approaches.classification import bert_adapter_two_modules_mask_ncl as approach
 elif args.approach=='bert_adapter_capsule_mask_cnn_way_ncl':
     from approaches.classification import bert_adapter_capsule_mask_cnn_way_ncl as approach
-elif args.approach=='bert_adapter_capsule_grow_ncl':
-    from approaches.classification import bert_adapter_capsule_grow_ncl as approach
 elif args.approach=='bert_adapter_capsule_mask_imp_ncl':
     from approaches.classification import bert_adapter_capsule_mask_ncl as approach
 elif args.approach=='bert_adapter_capsule_mask_ncl' or args.approach=='bert_adapter_capsule_ncl':
@@ -201,12 +209,6 @@ elif args.approach=='bert_adapter_mlp_mask_ncl':
     from approaches.classification import bert_adapter_mlp_mask_ncl as approach
 elif args.approach=='bert_mtl' or args.approach=='bert_adapter_mtl':
     from approaches.classification import bert_mtl as approach
-elif args.approach=='bert_sep_sentence_ncl':
-    from approaches.classification import bert_sep_ncl as approach
-elif args.approach=='bert_sep_sentence_one':
-    from approaches.classification import bert_sep_one as approach
-elif args.approach=='bert_sep_sentence_mtl':
-    from approaches.classification import bert_sep_mtl as approach
 elif args.approach=='bert_mlp_one' or args.approach=='bert_kim_one':
     from approaches.classification import bert_cnn_one as approach
 elif args.approach=='bert_mlp_ncl' or args.approach=='bert_kim_ncl' or args.approach=='bert_lstm_ncl':
@@ -223,11 +225,6 @@ elif args.approach=='bert_kim_ewc_ncl':
     from approaches.classification import bert_cnn_ewc_ncl as approach
 elif args.approach=='bert_mlp_mtl' or args.approach=='bert_kim_mtl':
     from approaches.classification import bert_cnn_mtl as approach
-elif args.approach=='bert_sep_mlp_sentence_mtl' or args.approach=='bert_sep_kim_sentence_mtl':
-    from approaches.classification import bert_sep_cnn_mtl as approach
-elif args.approach=='bert_sep_pcnn_one' or args.approach=='bert_sep_gcae_one' or args.approach=='bert_sep_kim_sentence_one'\
-        or args.approach=='bert_sep_mlp_sentence_one':
-    from approaches.classification import bert_sep_cnn_one as approach
 elif args.approach=='bert_sep_pcnn_ncl' or args.approach=='bert_sep_gcae_ncl' or args.approach=='bert_sep_kim_sentence_ncl'\
         or args.approach=='bert_sep_mlp_sentence_ncl':
     from approaches.classification import bert_sep_cnn_ncl as approach

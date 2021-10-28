@@ -21,12 +21,7 @@ import pickle
 # ########################################################################################################################
 
 # Args -- Experiment
-if args.scenario == 'til_extraction':
-    import import_til_extraction as import_modules
-elif args.scenario == 'dil_extraction':
-    import import_dil_extraction as import_modules
-else:
-    import import_classification as import_modules
+import import_classification as import_modules
 
 # ########################################################################################################################
 # ----------------------------------------------------------------------
@@ -274,9 +269,6 @@ for t,ncla in taskcla:
         test_set = t+1
     for u in range(test_set):
 
-        # if args.eval_only and t < len(taskcla)-1: continue #only want the last one
-
-
         test=data[u]['test']
 
         if args.multi_gpu and args.distributed:
@@ -288,11 +280,8 @@ for t,ncla in taskcla:
 
         if args.task in classification_tasks: #classification task
 
-            # if args.eval_only:
-            #     test_d_prec,test_d_recall,test_d_f1=appr.eval(u,test_dataloader,test)
             if 'kan' in args.approach:
                 test_loss,test_acc,test_f1_macro=appr.eval(u,test_dataloader,test,which_type='mcl',trained_task=t)
-                # print('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
                 logger.info('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
             elif 'cat' in args.approach:
                 valid=data[u]['valid']
@@ -302,29 +291,9 @@ for t,ncla in taskcla:
                 logger.info('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
 
             else:
-                # if 'aux' in args.approach:
-                #     test_loss,test_acc,test_f1_macro=appr.eval(u,test_dataloader,test,trained_task=t,phase='main')
-                # if args.two_stage:
-                    # test_loss,test_acc,test_f1_macro=appr.eval(u,test_dataloader,test,trained_task=t,phase='fine-tune')
-                # else:
                 test_loss,test_acc,test_f1_macro=appr.eval(u,test_dataloader,test,trained_task=t)
-                # print('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
                 logger.info('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
 
-
-            # if args.eval_only and t == args.ntasks-1: #last one
-            #     with open(performance_d_prec,'a') as file, open(performance_d_recall,'a') as recall_file, open(performance_d_f1,'a') as f1_file:
-            #         for p in test_d_prec:
-            #             file.writelines(str(p) + '\t')
-            #         file.writelines('\n')
-            #
-            #         for r in test_d_recall:
-            #             recall_file.writelines(str(r) + '\t')
-            #         recall_file.writelines('\n')
-            #
-            #         for f in test_d_f1:
-            #             f1_file.writelines(str(f) + '\t')
-            #         f1_file.writelines('\n')
 
             # elif args.eval_only: pass
             # else:
@@ -369,64 +338,6 @@ for t,ncla in taskcla:
                         file.writelines(str(acc[j][j]) + '\n')
                         f1_file.writelines(str(f1_macro[j][j]) + '\n')
 
-
-        elif args.task in extraction_tasks:
-            label_list = data[u]['label_list']
-            if 'kan' in args.approach:
-                test_loss,test_precision_avg,test_recall_avg,test_f1_avg=appr.eval(u,test_dataloader,which_type='mcl',trained_task=t)
-            else:
-                test_loss,test_precision_avg,test_recall_avg,test_f1_avg=appr.eval(u,test_dataloader,trained_task=t,label_list=label_list)
-            # print('>>> Test on task {:2d} - {:15s}: loss={:.3f}, f1_avg={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_f1_avg))
-            logger.info('>>> Test on task {:2d} - {:15s}: loss={:.3f}, f1_avg={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_f1_avg))
-
-
-            lss[t,u]=test_loss
-            precision_avg[t,u]=test_precision_avg
-            recall_avg[t,u]=test_recall_avg
-            f1_avg[t,u]=test_f1_avg
-
-            print('Save at '+args.output)
-            np.savetxt(args.output + '.progressive.precision_avg',precision_avg,'%.4f',delimiter='\t')
-            np.savetxt(args.output + '.progressive.recall_avg',recall_avg,'%.4f',delimiter='\t')
-            np.savetxt(args.output + '.progressive.f1_avg',f1_avg,'%.4f',delimiter='\t')
-
-            # Done
-            print('*'*100)
-            print('f1_avg =')
-            for i in range(f1_avg.shape[0]):
-                print('\t',end='')
-                for j in range(f1_avg.shape[1]):
-                    print('{:5.1f}% '.format(100*f1_avg[i,j]),end='')
-                print()
-            print('*'*100)
-            print('Done!')
-
-            print('[Elapsed time = {:.1f} h]'.format((time.time()-tstart)/(60*60)))
-
-            with open(precision_avg_output,'w') as precision_file, \
-                    open(recall_avg_output,'w') as recall_file, \
-                    open(f1_avg_output,'w') as f1_file:
-                if 'ncl' in args.approach  or 'mtl' in args.approach:
-                    for j in range(precision_avg.shape[1]):
-                        precision_file.writelines(str(precision_avg[-1][j]) + '\n')
-                        recall_file.writelines(str(recall_avg[-1][j]) + '\n')
-                        f1_file.writelines(str(f1_avg[-1][j]) + '\n')
-
-                elif 'one' in args.approach:
-                    for j in range(precision_avg.shape[1]):
-                        precision_file.writelines(str(precision_avg[j][j]) + '\n')
-                        recall_file.writelines(str(recall_avg[j][j]) + '\n')
-                        f1_file.writelines(str(f1_avg[j][j]) + '\n')
-
-
-            with open(precision_avg_output_forward,'w') as precision_file, \
-                    open(recall_avg_output_forward,'w') as recall_file, \
-                    open(f1_avg_output_forward,'w') as f1_file:
-                if 'ncl' in args.approach or 'mtl' in args.approach:
-                    for j in range(precision_avg.shape[1]):
-                        precision_file.writelines(str(precision_avg[j][j]) + '\n')
-                        recall_file.writelines(str(recall_avg[j][j]) + '\n')
-                        f1_file.writelines(str(f1_avg[j][j]) + '\n')
 
 ########################################################################################################################
 
