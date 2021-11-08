@@ -8,7 +8,6 @@ import math
 import json
 import argparse
 import random
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch
@@ -17,7 +16,6 @@ from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
 from torch.utils.data import TensorDataset, random_split
 import utils
-from seqeval.metrics import classification_report
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
 from pytorch_pretrained_bert.optimization import BertAdam
@@ -117,50 +115,6 @@ class Appr(object):
         print('BERT ADAPTER BASE')
 
         return
-
-    def augment_current_loss(self,output,pooled_rep,input_ids, segment_ids, input_mask,targets, t):
-        bsz = input_ids.size(0)
-
-        idxs,ls=self.idx_generator(bsz)
-
-        ref_pooled_reps = []
-        ref_outputs = []
-        for idx in idxs: #no need to re-run...
-            ref_output = output[idx].clone()
-            ref_pooled_rep = pooled_rep[idx].clone()
-
-            ref_pooled_reps.append(ref_pooled_rep)
-            ref_outputs.append(ref_output)
-
-        for idx_,idx in enumerate(idxs):
-            l = ls[idx_]
-            if self.args.current_head:
-                outputs = [output.clone().unsqueeze(1)]
-                ref_outputs = [ref_output.clone().unsqueeze(1)]
-
-            else:
-                outputs = [pooled_rep.clone().unsqueeze(1)]
-                ref_outputs = [ref_pooled_rep.clone().unsqueeze(1)]
-
-            pre_output_dict = self.model(input_ids, segment_ids, input_mask,l=l,idx=idx,start_mixup=True,mix_type='tmix') #pre_t as indicator
-            pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
-            pre_output = pre_output_dict['y']
-            pre_output = pre_output[t]
-            if self.args.current_head:
-                outputs.append(pre_output.unsqueeze(1).clone())
-                ref_outputs.append(pre_output.unsqueeze(1).clone())
-            else:
-                outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-                ref_outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-
-            outputs = torch.cat(outputs, dim=1)
-            ref_outputs = torch.cat(ref_outputs, dim=1)
-
-            current_loss = self.sup_con(outputs,targets,args=self.args) #same sampel, different domain, as close as possible
-            ref_current_loss = self.sup_con(ref_outputs,targets[idx],args=self.args) #same sampel, different domain, as close as possible
-            augment_current_loss = l*current_loss + (1-l)* ref_current_loss
-        return augment_current_loss
-
 
     def sup_loss(self,output,pooled_rep,input_ids, segment_ids, input_mask,targets,t):
         if self.args.sup_head:

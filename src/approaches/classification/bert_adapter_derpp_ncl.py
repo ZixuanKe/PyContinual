@@ -8,7 +8,6 @@ import math
 import json
 import argparse
 import random
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch

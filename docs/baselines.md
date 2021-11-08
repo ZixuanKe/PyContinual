@@ -18,7 +18,7 @@ The full list so far is as follows:
 | Model Name | Approach Specification| Network | Approach |
 |--|--| -- | -- |
 | L2 | l2 | bert/bert_kim/bert adapter/w2v_as/w2v | ncl |
-| A-GEM | agem | bert/bert_kim/bert adapter/w2v_as/w2v/cnn/mlp | ncl |
+| A-GEM | a-gem | bert/bert_kim/bert adapter/w2v_as/w2v/cnn/mlp | ncl |
 | [DER++](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html) | derpp | bert/bert_kim/bert adapter/w2v_as/w2v/cnn/mlp | ncl |
 | [KAN](https://www.cs.uic.edu/~liub/publications/ECML-PKDD-2020.pdf) | kan | bert_gru/w2v_as_gru/w2v_gru | ncl|
 | [SRK](https://www.cs.uic.edu/~swang/papers/lv_shared_knowledge_sentiment.pdf) | srk | bert_gru/w2v_as_gru/w2v_gru | ncl|

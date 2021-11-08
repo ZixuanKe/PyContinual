@@ -24,11 +24,11 @@ class Net(torch.nn.Module):
         self.args = args
         self.bert = BertModel.from_pretrained(args.bert_model,config=config) #nomral bert here, and fixed weight
         if args.use_imp:
-            from .adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
-            from .adapters import BertAdapterCapsuleImp as BertAdapterCapsule
+            from adapters import BertAdapterCapsuleMaskImp as BertAdapterCapsuleMask
+            from adapters import BertAdapterCapsuleImp as BertAdapterCapsule
         else:
-            from .adapters import BertAdapterCapsuleMask
-            from .adapters import BertAdapterCapsule
+            from adapters import BertAdapterCapsuleMask
+            from adapters import BertAdapterCapsule
 
         self.taskcla=taskcla
         self.dropout = nn.Dropout(args.hidden_dropout_prob)

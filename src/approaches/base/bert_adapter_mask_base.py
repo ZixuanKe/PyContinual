@@ -8,7 +8,6 @@ import math
 import json
 import argparse
 import random
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch
@@ -199,114 +198,26 @@ class Appr(object):
         sup_loss = self.sup_con(outputs, targets,args=self.args)
         return sup_loss
 
-    def augment_current_loss(self,output,pooled_rep,input_ids, segment_ids, input_mask,targets, t,s):
-        bsz = input_ids.size(0)
-
-        idxs,ls=self.idx_generator(bsz)
-
-        ref_pooled_reps = []
-        ref_outputs = []
-        for idx in idxs: #no need to re-run...
-            ref_output = output[idx].clone()
-            ref_pooled_rep = pooled_rep[idx].clone()
-
-            ref_pooled_reps.append(ref_pooled_rep)
-            ref_outputs.append(ref_output)
-
-        for idx_,idx in enumerate(idxs):
-            l = ls[idx_]
-            if self.args.current_head:
-                outputs = [output.clone().unsqueeze(1)]
-                ref_outputs = [ref_output.clone().unsqueeze(1)]
-
-            else:
-                outputs = [pooled_rep.clone().unsqueeze(1)]
-                ref_outputs = [ref_pooled_rep.clone().unsqueeze(1)]
-
-            pre_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,l=l,idx=idx,start_mixup=True,mix_type='tmix') #pre_t as indicator
-            pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
-            pre_output = pre_output_dict['y']
-
-            if self.args.current_head:
-                outputs.append(pre_output.unsqueeze(1).clone())
-                ref_outputs.append(pre_output.unsqueeze(1).clone())
-            else:
-                outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-                ref_outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-
-            outputs = torch.cat(outputs, dim=1)
-            ref_outputs = torch.cat(ref_outputs, dim=1)
-
-            current_loss = self.sup_con(outputs,targets,args=self.args) #same sampel, different domain, as close as possible
-            ref_current_loss = self.sup_con(ref_outputs,targets[idx],args=self.args) #same sampel, different domain, as close as possible
-            augment_current_loss = l*current_loss + (1-l)* ref_current_loss
-
-        return augment_current_loss
-
-
 
     def augment_distill_loss(self,output,pooled_rep,input_ids, segment_ids, input_mask,targets, t,s):
         bsz = input_ids.size(0)
 
-        if self.args.tmix: #tmix can vbe multiple
-            idxs,ls=self.idx_generator(bsz)
+        if self.args.distill_head:
+            outputs = [output.clone().unsqueeze(1)]
+        else:
+            outputs = [pooled_rep.clone().unsqueeze(1)]
 
-            ref_pooled_reps = []
-            ref_outputs = []
-            for idx in idxs: #no need to re-run...
-                ref_output = output[idx].clone()
-                ref_pooled_rep = pooled_rep[idx].clone()
-
-                ref_pooled_reps.append(ref_pooled_rep)
-                ref_outputs.append(ref_output)
-
-            for idx_,idx in enumerate(idxs):
-                l = ls[idx_]
-                if self.args.distill_head:
-                    outputs = [output.clone().unsqueeze(1)]
-                    ref_outputs = [ref_output.clone().unsqueeze(1)]
-
-                else:
-                    outputs = [pooled_rep.clone().unsqueeze(1)]
-                    ref_outputs = [ref_pooled_rep.clone().unsqueeze(1)]
-
-                with torch.no_grad():
-                    for pre_t in range(t):
-                        pre_output_dict = self.model(pre_t,input_ids, segment_ids, input_mask,s=self.smax,l=l,idx=idx,start_mixup=True,mix_type='tmix') #pre_t as indicator
-                        pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
-                        pre_output = pre_output_dict['y']
-
-                if self.args.distill_head:
-                    outputs.append(pre_output.unsqueeze(1).clone())
-                    ref_outputs.append(pre_output.unsqueeze(1).clone())
-                else:
-                    outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-                    ref_outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-
-                outputs = torch.cat(outputs, dim=1)
-                ref_outputs = torch.cat(ref_outputs, dim=1)
-
-                distill_loss = self.sup_con(outputs,args=self.args) #same sampel, different domain, as close as possible
-                ref_distill_loss = self.sup_con(ref_outputs,args=self.args) #same sampel, different domain, as close as possible
-                augment_distill_loss = l*distill_loss + (1-l)* ref_distill_loss
-
-        else: #no tmix, no need to perprotion
-            if self.args.distill_head:
-                outputs = [output.clone().unsqueeze(1)]
-            else:
-                outputs = [pooled_rep.clone().unsqueeze(1)]
-
-            with torch.no_grad():
-                for pre_t in range(t):
-                    pre_output_dict = self.model(pre_t,input_ids, segment_ids, input_mask,s=self.smax)
-                    pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
-                    pre_output = pre_output_dict['y']
-            if self.args.distill_head:
-                outputs.append(pre_output.unsqueeze(1).clone())
-            else:
-                outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-            outputs = torch.cat(outputs, dim=1)
-            augment_distill_loss= self.sup_con(outputs,args=self.args)
+        with torch.no_grad():
+            for pre_t in range(t):
+                pre_output_dict = self.model(pre_t,input_ids, segment_ids, input_mask,s=self.smax)
+                pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
+                pre_output = pre_output_dict['y']
+        if self.args.distill_head:
+            outputs.append(pre_output.unsqueeze(1).clone())
+        else:
+            outputs.append(pre_pooled_rep.unsqueeze(1).clone())
+        outputs = torch.cat(outputs, dim=1)
+        augment_distill_loss= self.sup_con(outputs,args=self.args)
 
         return augment_distill_loss
 
@@ -318,63 +229,35 @@ class Appr(object):
         else:
             mix_pooled_reps = [pooled_rep.clone().unsqueeze(1)]
 
-        if self.args.attn_type == 'cos':
-            for n in range(self.args.naug+1):
-                mix_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,start_mixup=True,l=n,mix_type=self.args.mix_type)
-                mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
-                mix_output = mix_output_dict['y']
-                mix_masks = mix_output_dict['masks']
+        orders = self.order_generation(t)
+        print('orders: ',orders)
 
-                if 'til' in self.args.scenario:
-                    mix_output = mix_output[t]
+        neg_mix_pooled_reps = []
 
-                n_loss,_=self.hat_criterion_adapter(mix_output,targets,mix_masks) # it self is also training
-                amix_loss+=n_loss # let's first do some pre-training
+        for order_id,order in enumerate(orders):
+            mix_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
+            mix_output = mix_output_dict['y']
+            mix_masks = mix_output_dict['masks']
+            mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
 
-                if self.args.amix_head:
-                    mix_pooled_reps.append(mix_output.unsqueeze(1).clone())
-                else:
-                    mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
-
-        elif self.args.attn_type == 'self':
-            orders = self.order_generation(t)
-            print('orders: ',orders)
-
-            neg_mix_pooled_reps = []
-
-            for order_id,order in enumerate(orders):
-                mix_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
-                mix_output = mix_output_dict['y']
-                mix_masks = mix_output_dict['masks']
-                mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
-
-                if 'til' in self.args.scenario:
-                    mix_output = mix_output[t]
-                n_loss,_=self.hat_criterion_adapter(mix_output,targets,mix_masks) # it self is also training
-                amix_loss+=n_loss # let's first do some pre-training
-
-                if self.args.use_dissimilar:
-                    neg_mix_pooled_rep = mix_output_dict['neg_normalized_pooled_rep']
-                    neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone())
-
-                if self.args.amix_head:
-                    mix_pooled_reps.append(mix_output.unsqueeze(1).clone())
-                else:
-                    mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
+            if 'til' in self.args.scenario:
+                mix_output = mix_output[t]
+            n_loss,_=self.hat_criterion_adapter(mix_output,targets,mix_masks) # it self is also training
+            amix_loss+=n_loss # let's first do some pre-training
 
             if self.args.use_dissimilar:
-                neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone()) # in fact, this is only use as negative samples
-                neg_mix_pooled_reps = torch.cat(neg_mix_pooled_reps, dim=1)
+                neg_mix_pooled_rep = mix_output_dict['neg_normalized_pooled_rep']
+                neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone())
+
+            if self.args.amix_head:
+                mix_pooled_reps.append(mix_output.unsqueeze(1).clone())
+            else:
+                mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
+
 
         cur_mix_outputs = torch.cat(mix_pooled_reps, dim=1)
 
-        if self.args.use_dissimilar: #dissimilar as negative
-            cur_mix_outputs = torch.cat([cur_mix_outputs,neg_mix_pooled_reps],dim=0)
-            targets_ =  torch.cat([targets,targets],dim=0)
-            amix_loss += self.sup_con(cur_mix_outputs, targets_,args=self.args)
-
-        else:
-            amix_loss += self.sup_con(cur_mix_outputs, targets,args=self.args) #train attention and contrastive learning at the same time
+        amix_loss += self.sup_con(cur_mix_outputs, targets,args=self.args) #train attention and contrastive learning at the same time
         return amix_loss
 
 
@@ -392,21 +275,6 @@ class Appr(object):
         #TODO: why don't we generate more?
         ls,idxs = [],[]
         for n in range(self.args.ntmix):
-            if self.args.tmix:
-                if self.args.co:
-                    mix_ = np.random.choice([0, 1], 1)[0]
-                else:
-                    mix_ = 1
-
-                if mix_ == 1:
-                    l = np.random.beta(self.args.alpha, self.args.alpha)
-                    if self.args.separate_mix:
-                        l = l
-                    else:
-                        l = max(l, 1-l)
-                else:
-                    l = 1
-                idx = torch.randperm(bsz) # Note I currently do not havce unsupervised data
             ls.append(l)
             idxs.append(idx)
 

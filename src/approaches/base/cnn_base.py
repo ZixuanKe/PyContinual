@@ -208,51 +208,6 @@ class Appr(object):
         sup_loss = self.sup_con(outputs, targets,args=self.args)
         return sup_loss
 
-    def augment_current_loss(self,output,pooled_rep,images,targets, t,s):
-        bsz = images.size(0)
-
-        idxs,ls=self.idx_generator(bsz)
-
-        ref_pooled_reps = []
-        ref_outputs = []
-        for idx in idxs: #no need to re-run...
-            ref_output = output[idx].clone()
-            ref_pooled_rep = pooled_rep[idx].clone()
-
-            ref_pooled_reps.append(ref_pooled_rep)
-            ref_outputs.append(ref_output)
-
-        for idx_,idx in enumerate(idxs):
-            l = ls[idx_]
-            if self.args.current_head:
-                outputs = [output.clone().unsqueeze(1)]
-                ref_outputs = [ref_output.clone().unsqueeze(1)]
-
-            else:
-                outputs = [pooled_rep.clone().unsqueeze(1)]
-                ref_outputs = [ref_pooled_rep.clone().unsqueeze(1)]
-
-            pre_output_dict = self.model(t,images,s=s,l=l,idx=idx,start_mixup=True,mix_type='tmix') #pre_t as indicator
-            pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
-            pre_output = pre_output_dict['y']
-
-            if self.args.current_head:
-                outputs.append(pre_output.unsqueeze(1).clone())
-                ref_outputs.append(pre_output.unsqueeze(1).clone())
-            else:
-                outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-                ref_outputs.append(pre_pooled_rep.unsqueeze(1).clone())
-
-            outputs = torch.cat(outputs, dim=1)
-            ref_outputs = torch.cat(ref_outputs, dim=1)
-
-            current_loss = self.sup_con(outputs,targets,args=self.args) #same sampel, different domain, as close as possible
-            ref_current_loss = self.sup_con(ref_outputs,targets[idx],args=self.args) #same sampel, different domain, as close as possible
-            augment_current_loss = l*current_loss + (1-l)* ref_current_loss
-
-        return augment_current_loss
-
-
 
     def augment_distill_loss(self,output,pooled_rep,images,targets, t,use_aux=False):
         augment_distill_loss = 0
@@ -374,21 +329,6 @@ class Appr(object):
         #TODO: why don't we generate more?
         ls,idxs = [],[]
         for n in range(self.args.ntmix):
-            if self.args.tmix:
-                if self.args.co:
-                    mix_ = np.random.choice([0, 1], 1)[0]
-                else:
-                    mix_ = 1
-
-                if mix_ == 1:
-                    l = np.random.beta(self.args.alpha, self.args.alpha)
-                    if self.args.separate_mix:
-                        l = l
-                    else:
-                        l = max(l, 1-l)
-                else:
-                    l = 1
-                idx = torch.randperm(bsz) # Note I currently do not havce unsupervised data
             ls.append(l)
             idxs.append(idx)
 

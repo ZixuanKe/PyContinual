@@ -5,7 +5,6 @@ import torch
 dtype = torch.cuda.FloatTensor  # run on GPU
 import utils
 from tqdm import tqdm, trange
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch

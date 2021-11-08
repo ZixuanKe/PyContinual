@@ -28,19 +28,19 @@ class Net(torch.nn.Module):
             # param.requires_grad = True
             param.requires_grad = False
 
-        if config.apply_bert_output and config.apply_bert_attention_output:
+        if args.apply_bert_output and args.apply_bert_attention_output:
             adapter_masks = \
                 [self.bert.encoder.layer[layer_id].attention.output.adapter_mask for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].attention.output.LayerNorm for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.adapter_mask for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
 
-        elif config.apply_bert_output:
+        elif args.apply_bert_output:
             adapter_masks = \
                 [self.bert.encoder.layer[layer_id].output.adapter_mask for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].output.LayerNorm for layer_id in range(config.num_hidden_layers)]
 
-        elif config.apply_bert_attention_output:
+        elif args.apply_bert_attention_output:
             adapter_masks = \
                 [self.bert.encoder.layer[layer_id].attention.output.adapter_mask for layer_id in range(config.num_hidden_layers)] + \
                 [self.bert.encoder.layer[layer_id].attention.output.LayerNorm for layer_id in range(config.num_hidden_layers)]
@@ -68,49 +68,17 @@ class Net(torch.nn.Module):
             for t,n in self.taskcla:
                 self.last.append(torch.nn.Linear(args.bert_hidden_size,n))
 
-        if 'Attn-HCHP-Outside' in self.args.mix_type:
-            if self.args.attn_type=='self':
-                if self.args.feature_based:
-                    self.self_attns = nn.ModuleList()
-                    for n in range(args.naug):
-                        self.self_attns.append(Self_Attn(args.bert_hidden_size))
-                elif self.args.task_based:
-                    self.self_attns = nn.ModuleList()
-                    for t in range(args.ntasks):
-                        self.self_attns_ = nn.ModuleList()
-                        offset = 0
-                        for n in range(args.naug):
-                            if n > 1: offset+=1
-                            if t+1-offset==0: break
-                            self.self_attns_.append(Self_Attn(t+1-offset))
-                        self.self_attns.append(self.self_attns_)
 
-            elif self.args.attn_type=='cos':
-                self.cos = nn.CosineSimilarity(dim=1)
+        self.self_attns = nn.ModuleList()
+        for t in range(args.ntasks):
+            self.self_attns_ = nn.ModuleList()
+            offset = 0
+            for n in range(args.naug):
+                if n > 1: offset+=1
+                if t+1-offset==0: break
+                self.self_attns_.append(Self_Attn(t+1-offset))
+            self.self_attns.append(self.self_attns_)
 
-                self.fc_zoomin = nn.ModuleList()
-                self.fc_zoomout = nn.ModuleList()
-                # self.convs4 = nn.ModuleList()
-
-                n_orders = list(range(args.ntasks))
-                self.n_order = [n_orders[:]]
-                self.fc_zoomin.append(nn.Linear(args.bert_hidden_size, args.semantic_cap_size))
-                self.fc_zoomout.append(nn.Linear(args.semantic_cap_size,args.bert_hidden_size))
-
-                seed = args.data_seed
-                for n in range(args.naug):
-                    self.fc_zoomin.append(nn.Linear(args.bert_hidden_size, args.semantic_cap_size))
-                    self.fc_zoomout.append(nn.Linear(args.semantic_cap_size,args.bert_hidden_size))
-                    # random.Random(seed).shuffle(n_orders)
-                    if args.nsamples > 1:
-                        #you may want to only sample some: random.sample(population, k, *, counts=None)
-                        n_orders_samples = random.Random(seed).sample(n_orders,args.nsamples)
-                        self.n_order.append(n_orders_samples[:]) #deep copy
-                    else:
-                        self.n_order.append(n_orders[:]) #deep copy
-
-                    seed+=1
-                print('self.n_order: ',self.n_order)
 
         print(' BERT ADAPTER MASK')
 
@@ -120,28 +88,14 @@ class Net(torch.nn.Module):
         output_dict = {}
 
         if start_mixup and mix_type is not None and 'Attn-HCHP-Outside' in mix_type:
-            print('attn type: ', self.args.attn_type)
-            # do it lastly, one cal also choose to do it inside adapter
             sequence_output,pooled_output = \
                 self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=t,s=s)
             masks = self.mask(t,s)
-            if self.args.attn_type == 'self':
-                pooled_output,neg_pooled_output=self.self_attention_feature(t,input_ids,segment_ids,input_mask,pooled_output,l,idx,self.args.smax)
-                output_dict['neg_normalized_pooled_rep'] = F.normalize(neg_pooled_output, dim=1)
+            pooled_output,neg_pooled_output=self.self_attention_feature(t,input_ids,segment_ids,input_mask,pooled_output,l,idx,self.args.smax)
+            output_dict['neg_normalized_pooled_rep'] = F.normalize(neg_pooled_output, dim=1)
 
-            if self.args.attn_type == 'cos': pooled_output=self.cos_attention_feature(t,input_ids,segment_ids,input_mask,pooled_output,l,self.args.smax)
             pooled_output = self.dropout(pooled_output)
             # print('Attn-HCHP-Outside')
-
-        if start_mixup and mix_type is not None and 'tmix' in mix_type:
-            print('tmix: ')
-
-            sequence_output,pooled_output = \
-                self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,
-                          t=t,s=s,start_mixup=start_mixup,l=l,idx=idx,pre_t='tmix')
-            masks = self.mask(t,s)
-            pooled_output = self.dropout(pooled_output)
-            # print('tmix')
 
         else:
             print('others: ')
@@ -201,31 +155,6 @@ class Net(torch.nn.Module):
 
         return pooled_output,neg_pooled_output
 
-
-    def cos_attention_feature(self,t,input_ids,segment_ids,input_mask,pooled_output,l,smax):
-        h = self.fc_zoomin[l](pooled_output)
-
-        pre_pooled_outputs = []
-        decision_maker = []
-        for pre_t in self.n_order[l]:
-            with torch.no_grad():
-                _,pre_pooled_output = \
-                    self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=pre_t,s=smax)
-
-            pre_pooled_output = self.fc_zoomin[l](pre_pooled_output) # zoom in should be trainable
-            pre_pooled_outputs.append(pre_pooled_output.unsqueeze(1).clone())
-
-            z = self.cos(pre_pooled_output,h) #similarity
-            decision_maker.append(z.view(-1,1).clone())
-
-
-        decision_maker = torch.cat(decision_maker, 1)
-        pre_pooled_outputs = torch.cat(pre_pooled_outputs, 1)
-        pooled_output = (pre_pooled_outputs * decision_maker.unsqueeze(-1)).sum(1)
-        pooled_output = self.fc_zoomout[l](pooled_output)
-
-
-        return pooled_output
 
 
     def mask(self,t,s):

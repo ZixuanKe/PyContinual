@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import multiprocessing
 import utils
-from filelock import FileLock
 from datetime import datetime
 import dataclasses
 import logging
@@ -98,9 +97,6 @@ def asc_config(parser):
     parser.add_argument('--build_adapter_ucl', action='store_true')
     parser.add_argument('--build_adapter_owm', action='store_true')
     parser.add_argument('--build_adapter_mask', action='store_true')
-    parser.add_argument('--build_adapter_capsule_grow', action='store_true')
-    parser.add_argument('--build_adapter_attention_mask', action='store_true')
-    parser.add_argument('--build_adapter_two_modules', action='store_true')
     parser.add_argument('--build_adapter_capsule_mask', action='store_true')
     parser.add_argument('--build_adapter_mlp_mask', action='store_true')
     parser.add_argument('--build_adapter_capsule', action='store_true')
@@ -339,7 +335,6 @@ def augment_config(parser):
                         help='weight for consistency loss term of unlabeled data')
     parser.add_argument('--lambda-u-hinge', default=0, type=float,
                         help='weight for hinge loss term of unlabeled data')
-    parser.add_argument('--tmix', action='store_true')
     parser.add_argument('--amix', action='store_true')
     parser.add_argument('--mix-layers-set', nargs='+',
                         default=[0, 1, 2, 3], type=int, help='define mix layer set')

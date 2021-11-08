@@ -8,7 +8,6 @@ import math
 import json
 import argparse
 import random
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch
@@ -17,7 +16,6 @@ from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
 from torch.utils.data import TensorDataset, random_split
 import utils
-from seqeval.metrics import classification_report
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
 from pytorch_pretrained_bert.optimization import BertAdam
@@ -68,15 +66,11 @@ class Appr(ApprBase):
 
             train_loss,train_acc,train_f1_macro=self.eval(t,train)
             clock2=time.time()
-            # print('time: ',float((clock1-clock0)*10*25))
             self.logger.info('| Epoch {:3d}, time={:5.1f}ms/{:5.1f}ms | Train: loss={:.3f}, acc={:5.1f}% |'.format(e+1,
                 1000*self.train_batch_size*(clock1-clock0)/len(train),1000*self.train_batch_size*(clock2-clock1)/len(train),train_loss,100*train_acc))
-            # print('| Epoch {:3d}, time={:5.1f}ms/{:5.1f}ms | Train: loss={:.3f}, acc={:5.1f}% |'.format(e+1,
-            #     1000*self.train_batch_size*(clock1-clock0)/len(train),1000*self.train_batch_size*(clock2-clock1)/len(train),train_loss,100*train_acc),end='')
 
             valid_loss,valid_acc,valid_f1_macro=self.eval(t,valid)
             self.logger.info(' Valid: loss={:.3f}, acc={:5.1f}% |'.format(valid_loss,100*valid_acc))
-            # print(' Valid: loss={:.3f}, acc={:5.1f}% |'.format(valid_loss,100*valid_acc),end='')
 
             # Adapt lr
             if valid_loss<best_loss:

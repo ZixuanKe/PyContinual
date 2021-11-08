@@ -53,7 +53,6 @@ class Net(torch.nn.Module):
         self.args = args
         self.config = config
         self.num_task = len(taskcla)
-        self.num_class = 3
         self.num_kernel = 3
 
         print('BERT ADAPTER CAPSULE MASK')
@@ -62,11 +61,10 @@ class Net(torch.nn.Module):
 
     def forward(self,t,input_ids, segment_ids, input_mask, targets, s=1):
 
-        targets = torch.eye(self.num_class).cuda().index_select(dim=0, index=targets)
 
         output_dict = \
             self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,
-                      targets=targets,t=t,s=s)
+                      targets=None,t=t,s=s)
 
         sequence_output, pooled_output = output_dict['outputs']
 

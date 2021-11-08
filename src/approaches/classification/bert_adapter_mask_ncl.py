@@ -8,7 +8,6 @@ import math
 import json
 import argparse
 import random
-from transformers import AdamW, get_linear_schedule_with_warmup
 from tqdm import tqdm, trange
 import numpy as np
 import torch
@@ -152,10 +151,6 @@ class Appr(ApprBase):
 
             if self.args.augment_distill and t > 0: #separatlu append
                 loss += self.augment_distill_loss(output,pooled_rep,input_ids, segment_ids, input_mask,targets, t,s)
-
-
-            if self.args.augment_current: #for current, we know the label
-                loss += self.augment_current_loss(output,pooled_rep,input_ids, segment_ids, input_mask,targets, t,s)
 
             if self.args.sup_loss:
                 loss += self.sup_loss(output,pooled_rep,input_ids, segment_ids, input_mask,targets,t,s)

@@ -92,15 +92,6 @@ class Net(torch.nn.Module):
                 h,neg_h = self.self_attention_feature(t,x,h,l,idx,self.args.smax)
                 output_dict['neg_normalized_pooled_rep'] = F.normalize(neg_h, dim=1)
 
-            if self.args.attn_type == 'cos': h = self.cos_attention_feature(t,x,h,l,self.args.smax)
-
-        if start_mixup and  'tmix' in mix_type:
-            # print('tmix: ')
-
-            masks=self.mask(t=t,s=s)
-            gc1,gc2,gc3,gfc1,gfc2=masks
-            h=self.get_feature_augment(x,x[idx],gc1,gc2,gc3,gfc1,gfc2,l)
-
         else:
             # print('others: ')
 
