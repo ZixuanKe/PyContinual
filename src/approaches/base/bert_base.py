@@ -17,9 +17,7 @@ import torch.distributed as dist
 from torch.utils.data import TensorDataset, random_split
 import utils
 # from apex import amp
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from pytorch_pretrained_bert.modeling import BertForSequenceClassification
-from pytorch_pretrained_bert.optimization import BertAdam
+
 import torch.autograd as autograd
 sys.path.append("./approaches/")
 from contrastive_loss import SupConLoss, CRDLoss

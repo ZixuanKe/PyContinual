@@ -9,7 +9,7 @@ for id in 0
 do
    python run.py \
     --bert_model 'bert-base-uncased' \
-    --note random$id,amix,Attn-HCHP-Outside,distill_head,sup,augment_distill,selfattn,naug5,last_id,200\
+    --note random$id,classic\
     --ntasks 10 \
     --nclasses 2 \
     --task dsc \
@@ -29,9 +29,6 @@ do
     --distill_head \
     --sup_loss \
     --amix \
-    --mix_type Attn-HCHP-Outside \
-    --naug 5 \
-    --attn_type self \
     --semantic_cap_size 2048 \
     --last_id
 done

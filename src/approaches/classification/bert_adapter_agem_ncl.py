@@ -18,12 +18,12 @@ from torch.utils.data import TensorDataset, random_split
 import utils
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
-from pytorch_pretrained_bert.optimization import BertAdam
 from copy import deepcopy
 from torch.utils.data import DataLoader
 import quadprog
 sys.path.append("./approaches/base/")
 from bert_adapter_base import Appr as ApprBase
+from my_optimization import BertAdam
 
 class Appr(ApprBase):
 

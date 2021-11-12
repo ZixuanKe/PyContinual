@@ -89,8 +89,7 @@ class Net(torch.nn.Module):
             gc1,gc2,gc3,gfc1,gfc2=masks
             h=self.get_feature(x,gc1,gc2,gc3,gfc1,gfc2)
             if self.args.attn_type == 'self':
-                h,neg_h = self.self_attention_feature(t,x,h,l,idx,self.args.smax)
-                output_dict['neg_normalized_pooled_rep'] = F.normalize(neg_h, dim=1)
+                h = self.self_attention_feature(t,x,h,l,idx,self.args.smax)
 
         else:
             # print('others: ')
@@ -125,9 +124,8 @@ class Net(torch.nn.Module):
 
             pre_hs = torch.cat(pre_hs, 1)
 
-            pooled_output,neg_pooled_output = self.self_attns[idx](pre_hs) #softmax on task
+            pooled_output = self.self_attns[idx](pre_hs) #softmax on task
             pooled_output = pooled_output.sum(1) #softmax on task
-            neg_pooled_output = neg_pooled_output.sum(1)
 
         elif self.args.task_based:
             pre_hs = []
@@ -141,11 +139,10 @@ class Net(torch.nn.Module):
             pre_hs = torch.cat(pre_hs, -1)
             pre_hs = torch.cat([pre_hs,pooled_output.unsqueeze(-1).clone()], -1) # include itselves
 
-            pooled_output,neg_pooled_output = self.self_attns[t][idx](pre_hs) #softmax on task
+            pooled_output = self.self_attns[t][idx](pre_hs) #softmax on task
             pooled_output = pooled_output.sum(-1) #softmax on task
-            neg_pooled_output = neg_pooled_output.sum(-1)
 
-        return pooled_output,neg_pooled_output
+        return pooled_output
 
 
 
@@ -266,7 +263,6 @@ class Self_Attn(nn.Module):
         # print('energy: ',energy.size())
 
         attention = self.softmax(energy) # BX (N) X (N)
-        neg_attention = (1-attention.clone()) #for negative, we attend on those dissimilar tasks (1-attention)
 
         # attention =  F.gumbel_softmax(energy,hard=True,dim=-1)
         # print('attention: ',attention)
@@ -275,11 +271,7 @@ class Self_Attn(nn.Module):
         out = torch.bmm(proj_value,attention.permute(0,2,1) )
         out = out.view(m_batchsize,width,height)
 
-        neg_out = torch.bmm(proj_value,neg_attention.permute(0,2,1) )
-        neg_out = neg_out.view(m_batchsize,width,height)
-
         out = self.gamma*out + x
-        neg_out = self.gamma*neg_out + x
 
 
-        return out,neg_out
+        return out

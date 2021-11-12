@@ -16,7 +16,6 @@ import utils
 from seqeval.metrics import classification_report
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
-from pytorch_pretrained_bert.optimization import BertAdam
 from copy import deepcopy
 import os
 import logging
@@ -26,6 +25,7 @@ import json
 import random
 sys.path.append("./approaches/base/")
 from bert_adapter_base import Appr as ApprBase
+from my_optimization import BertAdam
 
 ########################################################################################################################
 

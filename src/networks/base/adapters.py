@@ -19,7 +19,7 @@ class BertAdapter(nn.Module):
         else: self.activation = torch.nn.ReLU()
         print('BertAdapter')
 
-    def forward(self,x,pre_t=None,l=None,start_mixup=False,idx=None):
+    def forward(self,x):
 
         h=self.activation(self.fc1(x))
         h=self.activation(self.fc2(h))
@@ -45,7 +45,7 @@ class BertAdapterMask(BertAdapter):
         print('BertAdapterMask')
 
 
-    def forward(self,x,t,s,smax=400,pre_t=None,l=None,start_mixup=False,idx=None):
+    def forward(self,x,t,s):
 
         gfc1,gfc2=self.mask(t=t,s=s)
         h = self.get_feature(gfc1,gfc2,x)
@@ -79,7 +79,7 @@ class BertAdapterMask(BertAdapter):
 
 
 # --------------------------
-# Belows arefor  CTR
+# Belows are for  CTR
 # --------------------------
 
 class BertAdapterCapsuleMaskImp(BertAdapterMask):
@@ -97,7 +97,7 @@ class BertAdapterCapsuleMaskImp(BertAdapterMask):
         print('BertAdapterCapsuleMaskImp')
 
 
-    def forward(self,x,t,s,targets,smax=400):
+    def forward(self,x,t,s):
         # task shared
         capsule_output = self.capsule_net(t,x,s)
 
@@ -376,38 +376,7 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
 
             if self.config.transfer_route: return x
 
-            if '3layer' in self.config.exp: #task,transfer,representation
-
-                batch_size = x.size(0)
-                x = x.contiguous().view(batch_size*self.config.max_seq_length,-1,self.config.semantic_cap_size)
-
-                priors = x[None, :, :, None, :] @ self.route_weights[:, None, :, :, :]
-                logits = torch.zeros(*priors.size()).cuda()
-                mask=torch.zeros(self.config.ntasks).data.cuda()
-                # print('self.tsv[t]: ',self.tsv[t])
-                for x_id in range(self.config.ntasks):
-                    if self.tsv[t][x_id] == 0: mask[x_id].fill_(-10000) # block future, all previous are the same
-
-                for i in range(self.num_iterations):
-                    logits = logits*self.tsv[t].data.view(1,1,-1,1,1) #multiply 0 to future task
-                    logits = logits + mask.data.view(1,1,-1,1,1) #add a very small negative number
-                    probs = self.my_softmax(logits, dim=2)
-                    vote_outputs = (probs * priors).sum(dim=2, keepdim=True) #voted
-                    outputs = self.squash(vote_outputs)
-
-                    if i != self.num_iterations - 1:
-                        delta_logits = (priors * outputs).sum(dim=-1, keepdim=True)
-                        logits = logits + delta_logits
-
-                h_output = vote_outputs.view(batch_size,self.config.max_seq_length,-1)
-
-                h_output= self.larger(h_output)
-                glarger=self.mask(t=t,s=s)
-                h_output=h_output*glarger.expand_as(h_output)
-
-                return h_output
-
-            elif self.config.exp in ['2layer_whole','2layer_aspect_transfer']: #task,transfer,representation
+            if self.config.exp in ['2layer_whole','2layer_aspect_transfer']: #task,transfer,representation
                 batch_size = x.size(0)
                 x = x.transpose(2,1)
                 h_output = x.contiguous().view(batch_size,self.config.max_seq_length,-1)
@@ -416,58 +385,6 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
                 h_output=h_output*glarger.expand_as(h_output)
                 return h_output
 
-            elif self.config.exp == '2layer_aspect_dynamic': #task,transfer,representation
-
-                batch_size = x.size(0)
-                x = x.contiguous().view(batch_size*self.config.max_seq_length,-1,self.config.semantic_cap_size)
-
-                priors = x[None, :, :, None, :] @ self.route_weights[:, None, :, :, :]
-                logits = torch.zeros(*priors.size()).cuda()
-                # print('logits: ',logits.size())  torch.Size([3, 32, 19, 1, 128])
-                mask=torch.zeros(self.config.ntasks).data.cuda()
-                # print('self.tsv[t]: ',self.tsv[t])
-                for x_id in range(self.config.ntasks):
-                    if self.tsv[t][x_id] == 0: mask[x_id].fill_(-10000) # block future, all previous are the same
-
-                for i in range(self.num_iterations):
-                    logits = logits*self.tsv[t].data.view(1,1,-1,1,1) #multiply 0 to future task
-                    logits = logits + mask.data.view(1,1,-1,1,1) #add a very small negative number
-                    probs = self.my_softmax(logits, dim=2)
-                    vote_outputs = (probs * priors).sum(dim=2, keepdim=True) #voted
-                    outputs = self.squash(vote_outputs)
-                    if i != self.num_iterations - 1:
-                        priors_ = \
-                            priors.view(
-                                self.config.num_semantic_cap,
-                                batch_size,
-                                self.config.max_seq_length,
-                                self.config.ntasks,
-                                1,
-                                self.config.semantic_cap_size) [:,:,1:1+self.config.max_term_length,:,:,:]
-
-                        outputs_ = \
-                            outputs.view(
-                                self.config.num_semantic_cap,
-                                batch_size,
-                                self.config.max_seq_length,
-                                1,
-                                1,
-                                self.config.semantic_cap_size) [:,:,1:1+self.config.max_term_length,:,:,:]
-
-                        #delta only has something to do with aspect
-
-                        delta_logits = (priors_* outputs_).sum(dim=-1, keepdim=True).sum(dim=2, keepdim=False)
-                        delta_logits = delta_logits.repeat(1,config.max_seq_length,1,1,1)
-                        #only compare the aspect
-
-                        logits = logits + delta_logits
-
-                h_output = vote_outputs.view(batch_size,self.config.max_seq_length,-1)
-                h_output= self.larger(h_output)
-                glarger=self.mask(t=t,s=s)
-                h_output=h_output*glarger.expand_as(h_output)
-
-                return h_output
 
     def mask(self,t,s):
         glarger=self.gate(s*self.elarger(torch.LongTensor([t]).cuda()))
@@ -503,7 +420,7 @@ class BertAdapterCapsuleMask(BertAdapterMask):
         print('BertAdapterCapsuleMask')
 
 
-    def forward(self,x,t,s,targets,smax=400):
+    def forward(self,x,t,s):
         # task shared
         margin_loss = 0
         capsule_output = self.capsule_net(t,x,s)
@@ -706,7 +623,7 @@ class BertAdapterCapsule(BertAdapter):
         self.capsule_net = CapsNet(config)
         print('BertAdapterCapsule')
 
-    def forward(self,x,t,s,targets,smax=400):
+    def forward(self,x,t,s):
         h = self.capsule_net(t,x,s)
         return x + h
 
@@ -719,7 +636,7 @@ class BertAdapterCapsuleImp(BertAdapter):
         self.gelu = torch.nn.GELU()
         print('BertAdapterCapsuleImp')
 
-    def forward(self,x,t,s,targets,smax=400):
+    def forward(self,x,t,s):
         h = self.capsule_net(t,x,s)
         return x + h
 

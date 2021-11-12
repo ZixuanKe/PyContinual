@@ -19,6 +19,7 @@ class Net(torch.nn.Module):
         super(Net,self).__init__()
         config = BertConfig.from_pretrained(args.bert_model)
         config.return_dict=False
+        args.build_adapter_mask = True
         self.bert = MyBertModel.from_pretrained(args.bert_model,config=config,args=args)
 
 
@@ -71,40 +72,30 @@ class Net(torch.nn.Module):
 
         self.self_attns = nn.ModuleList()
         for t in range(args.ntasks):
-            self.self_attns_ = nn.ModuleList()
-            offset = 0
-            for n in range(args.naug):
-                if n > 1: offset+=1
-                if t+1-offset==0: break
-                self.self_attns_.append(Self_Attn(t+1-offset))
-            self.self_attns.append(self.self_attns_)
+            self.self_attns.append(Self_Attn(t+1))
 
 
         print(' BERT ADAPTER MASK')
 
         return
 
-    def forward(self,t,input_ids, segment_ids, input_mask, start_mixup=None,s=None,l=None,idx=None,mix_type=None):
+    def forward(self,t,input_ids, segment_ids, input_mask, start_mixup=None,s=None):
         output_dict = {}
 
-        if start_mixup and mix_type is not None and 'Attn-HCHP-Outside' in mix_type:
+        if start_mixup:
             sequence_output,pooled_output = \
                 self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=t,s=s)
             masks = self.mask(t,s)
-            pooled_output,neg_pooled_output=self.self_attention_feature(t,input_ids,segment_ids,input_mask,pooled_output,l,idx,self.args.smax)
-            output_dict['neg_normalized_pooled_rep'] = F.normalize(neg_pooled_output, dim=1)
+            pooled_output=self.self_attention_feature(t,input_ids,segment_ids,input_mask,pooled_output)
 
             pooled_output = self.dropout(pooled_output)
-            # print('Attn-HCHP-Outside')
 
         else:
-            print('others: ')
 
             sequence_output, pooled_output = \
                 self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=t,s=s)
             masks = self.mask(t,s)
             pooled_output = self.dropout(pooled_output)
-            # print('else')
 
         if 'dil' in self.args.scenario:
             y = self.last(pooled_output)
@@ -121,39 +112,22 @@ class Net(torch.nn.Module):
 
 
 
-    def self_attention_feature(self,t,input_ids,segment_ids,input_mask,pooled_output,order,idx,smax):
-        if self.args.feature_based:
-            pre_pooled_outputs = []
-            for pre_t in order:
-                with torch.no_grad():
-                    _,pre_pooled_output = \
-                        self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=pre_t,s=smax)
-                pre_pooled_outputs.append(pre_pooled_output.unsqueeze(1).clone())
-
-            pre_pooled_outputs = torch.cat(pre_pooled_outputs, 1)
-
-            pooled_output,neg_pooled_output = self.self_attns[idx](pre_pooled_outputs) #softmax on task
-            pooled_output = pooled_output.sum(1) #softmax on task
-            neg_pooled_output = neg_pooled_output.sum(1)
-
-        elif self.args.task_based:
-            pre_pooled_outputs = []
-            for pre_t in order:
-                with torch.no_grad():
-                    _,pre_pooled_output = \
-                        self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=pre_t,s=smax)
-                pre_pooled_outputs.append(pre_pooled_output.unsqueeze(-1).clone())
+    def self_attention_feature(self,t,input_ids,segment_ids,input_mask,pooled_output):
+        pre_pooled_outputs = []
+        for pre_t in [x for x in range(t)]:
+            with torch.no_grad():
+                _,pre_pooled_output = \
+                    self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=pre_t,s=self.args.smax)
+            pre_pooled_outputs.append(pre_pooled_output.unsqueeze(-1).clone())
 
 
-            pre_pooled_outputs = torch.cat(pre_pooled_outputs, -1)
-            pre_pooled_outputs = torch.cat([pre_pooled_outputs,pooled_output.unsqueeze(-1).clone()], -1) # include itselves
-            print('pre_pooled_outputs: ',pre_pooled_outputs.size())
+        pre_pooled_outputs = torch.cat(pre_pooled_outputs, -1)
+        pre_pooled_outputs = torch.cat([pre_pooled_outputs,pooled_output.unsqueeze(-1).clone()], -1) # include itselves
 
-            pooled_output,neg_pooled_output = self.self_attns[t][idx](pre_pooled_outputs) #softmax on task
-            pooled_output = pooled_output.sum(-1) #softmax on task
-            neg_pooled_output = neg_pooled_output.sum(-1)
+        pooled_output = self.self_attns[t](pre_pooled_outputs) #softmax on task
+        pooled_output = pooled_output.sum(-1) #softmax on task
 
-        return pooled_output,neg_pooled_output
+        return pooled_output
 
 
 
@@ -237,7 +211,6 @@ class Self_Attn(nn.Module):
         # print('energy: ',energy.size())
 
         attention = self.softmax(energy) # BX (N) X (N)
-        neg_attention = (1-attention.clone()) #for negative, we attend on those dissimilar tasks (1-attention)
 
         # attention =  F.gumbel_softmax(energy,hard=True,dim=-1)
         # print('attention: ',attention)
@@ -246,11 +219,7 @@ class Self_Attn(nn.Module):
         out = torch.bmm(proj_value,attention.permute(0,2,1) )
         out = out.view(m_batchsize,width,height)
 
-        neg_out = torch.bmm(proj_value,neg_attention.permute(0,2,1) )
-        neg_out = neg_out.view(m_batchsize,width,height)
-
         out = self.gamma*out + x
-        neg_out = self.gamma*neg_out + x
 
 
-        return out,neg_out
+        return out

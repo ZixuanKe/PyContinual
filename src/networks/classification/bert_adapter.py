@@ -15,6 +15,7 @@ class Net(torch.nn.Module):
         super(Net,self).__init__()
         config = BertConfig.from_pretrained(args.bert_model)
         config.return_dict=False
+        args.build_adapter = True
         self.bert = MyBertModel.from_pretrained(args.bert_model,config=config,args=args)
 
         #BERT fixed all ===========
@@ -64,12 +65,11 @@ class Net(torch.nn.Module):
 
         return
 
-    def forward(self,input_ids, segment_ids, input_mask,start_mixup=None,l=None,idx=None,mix_type=None):
+    def forward(self,input_ids, segment_ids, input_mask):
         output_dict = {}
 
 
-        sequence_output, pooled_output = \
-            self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
+        sequence_output, pooled_output = self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask)
         pooled_output = self.dropout(pooled_output)
         #shared head
 

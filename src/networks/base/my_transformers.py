@@ -104,15 +104,22 @@ class MyBertSelfOutput(BertSelfOutput):
 
         self.args = args
 
-    def forward(self, hidden_states, input_tensor,
-                targets=None,
-                t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None, l=None,idx=None):
+    def forward(self, hidden_states, input_tensor,**kwargs):
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
 
         if self.args.apply_bert_attention_output:
             if self.args.build_adapter:
-                hidden_states = self.adapter(hidden_states,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                hidden_states = self.adapter(hidden_states)
             elif self.args.build_adapter_ucl:
                 hidden_states = self.adapter_ucl(hidden_states)
             elif self.args.build_adapter_owm:
@@ -121,12 +128,12 @@ class MyBertSelfOutput(BertSelfOutput):
                 x_list = output_dict['x_list']
                 h_list = output_dict['h_list']
             elif self.args.build_adapter_mask:
-                hidden_states = self.adapter_mask(hidden_states,t,s,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                hidden_states = self.adapter_mask(hidden_states,t,s)
             elif self.args.build_adapter_capsule_mask:
-                output_dict = self.adapter_capsule_mask(hidden_states,t,s,targets)
+                output_dict = self.adapter_capsule_mask(hidden_states,t,s)
                 hidden_states = output_dict['outputs']
             elif self.args.build_adapter_capsule:
-                hidden_states = self.adapter_capsule(hidden_states,t,s,targets)
+                hidden_states = self.adapter_capsule(hidden_states,t,s)
 
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
 
@@ -149,41 +156,43 @@ class MyBertAttention(BertAttention):
         head_mask=None,
         encoder_hidden_states=None,
         encoder_attention_mask=None,
-        output_attentions=False,
-        targets=None,
-        t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None,l=None,idx=None
-    ):
+        output_attentions=False,**kwargs):
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
+
         self_outputs = self.self(
             hidden_states,
             attention_mask,
             head_mask,
             encoder_hidden_states,
             encoder_attention_mask,
-            output_attentions,
+            output_attentions
         )
         if self.args.apply_bert_attention_output:
             if self.args.build_adapter_capsule_mask:
                 output_dict = self.output(self_outputs[0], hidden_states,
-                                               targets=targets,
-                                               t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                               t=t,s=s)
                 attention_output = output_dict['outputs']
 
             elif self.args.build_adapter_owm:
-                output_dict = self.output(self_outputs[0], hidden_states,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                output_dict = self.output(self_outputs[0], hidden_states)
                 attention_output = output_dict['outputs']
                 x_list = output_dict['x_list']
                 h_list = output_dict['h_list']
 
             elif self.args.build_adapter_capsule:
-                attention_output = self.output(self_outputs[0], hidden_states,
-                                               targets=targets,
-                                               t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                attention_output = self.output(self_outputs[0], hidden_states,t=t,s=s)
             else:
-                attention_output = self.output(self_outputs[0], hidden_states,
-                                               t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                attention_output = self.output(self_outputs[0], hidden_states, t=t,s=s)
         else:
-            attention_output = self.output(self_outputs[0], hidden_states,
-                                           t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+            attention_output = self.output(self_outputs[0], hidden_states,t=t,s=s)
 
         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
         if self.args.apply_bert_attention_output:
@@ -320,13 +329,22 @@ class MyBertOutput(BertOutput):
 
         self.args = args
 
-    def forward(self, hidden_states, input_tensor,
-                 targets=None,t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None, l=None,idx=None):
+    def forward(self, hidden_states, input_tensor,**kwargs):
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
+
         hidden_states = self.dense(hidden_states)
         hidden_states = self.dropout(hidden_states)
         if self.args.apply_bert_output:
             if self.args.build_adapter:
-                hidden_states = self.adapter(hidden_states,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                hidden_states = self.adapter(hidden_states)
             elif self.args.build_adapter_ucl:
                 hidden_states = self.adapter_ucl(hidden_states)
 
@@ -337,14 +355,14 @@ class MyBertOutput(BertOutput):
                 h_list = output_dict['h_list']
 
             elif self.args.build_adapter_mask:
-                hidden_states = self.adapter_mask(hidden_states,t,s,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                hidden_states = self.adapter_mask(hidden_states,t,s)
 
             elif self.args.build_adapter_capsule_mask:
-                output_dict = self.adapter_capsule_mask(hidden_states,t,s,targets)
+                output_dict = self.adapter_capsule_mask(hidden_states,t,s)
                 hidden_states=output_dict['outputs']
 
             elif self.args.build_adapter_capsule:
-                hidden_states = self.adapter_capsule(hidden_states,t,s,targets)
+                hidden_states = self.adapter_capsule(hidden_states,t,s)
 
 
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
@@ -373,9 +391,16 @@ class MyBertLayer(BertLayer):
         head_mask=None,
         encoder_hidden_states=None,
         encoder_attention_mask=None,
-        output_attentions=False,
-        targets=None,t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None,l=None,idx=None
+        output_attentions=False,**kwargs
     ):
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
 
         if self.args.apply_bert_attention_output:
             if self.args.build_adapter_owm:
@@ -395,7 +420,7 @@ class MyBertLayer(BertLayer):
                     attention_mask,
                     head_mask,
                     output_attentions=output_attentions,
-                    targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s,
                 )
                 self_attention_outputs= output_dict['outputs']
 
@@ -405,7 +430,7 @@ class MyBertLayer(BertLayer):
                     attention_mask,
                     head_mask,
                     output_attentions=output_attentions,
-                    targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s,
                 )
             else:
                 self_attention_outputs = self.attention(
@@ -413,7 +438,7 @@ class MyBertLayer(BertLayer):
                     attention_mask,
                     head_mask,
                     output_attentions=output_attentions,
-                    t=t,s=s,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s
                 )
         else:
 
@@ -422,7 +447,7 @@ class MyBertLayer(BertLayer):
                 attention_mask,
                 head_mask,
                 output_attentions=output_attentions,
-                t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                t=t,s=s,
             )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -446,7 +471,7 @@ class MyBertLayer(BertLayer):
             if self.args.build_adapter_capsule_mask:
                 output_dict = apply_chunking_to_forward(
                     self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output,
-                    targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s,
                 )
                 layer_output=output_dict['outputs']
 
@@ -460,17 +485,17 @@ class MyBertLayer(BertLayer):
             elif self.args.build_adapter_capsule:
                 layer_output = apply_chunking_to_forward(
                     self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output,
-                    targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s,
                 )
             else:
                 layer_output = apply_chunking_to_forward(
                     self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output,
-                    t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s,
                 )
         else:
             layer_output = apply_chunking_to_forward(
                 self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output,
-                t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                t=t,s=s,
             )
 
         outputs = (layer_output,) + outputs
@@ -481,8 +506,7 @@ class MyBertLayer(BertLayer):
         else: return outputs
 
     def feed_forward_chunk(self, attention_output,
-                           targets=None,
-                           t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None, l=None,idx=None):
+                           t=None,s=1,):
         intermediate_output = self.intermediate(attention_output)
 
         if self.args.apply_bert_output:
@@ -494,20 +518,20 @@ class MyBertLayer(BertLayer):
 
             elif self.args.build_adapter_capsule_mask:
                 output_dict = self.output(intermediate_output, attention_output,
-                                           targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                           t=t,s=s,)
                 layer_output=output_dict['outputs']
 
             elif self.args.build_adapter_capsule:
                 layer_output = self.output(intermediate_output, attention_output,
-                                           targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                           t=t,s=s,)
 
             else:
                 layer_output = self.output(intermediate_output, attention_output,
-                                           t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                           t=t,s=s,)
 
         else:
             layer_output = self.output(intermediate_output, attention_output,
-                                       t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                       t=t,s=s,)
         if self.args.apply_bert_output:
             if self.args.build_adapter_capsule_mask: return {'outputs':layer_output}
             elif self.args.build_adapter_owm: return {'outputs':layer_output,'x_list':x_list,'h_list':h_list}
@@ -523,9 +547,19 @@ class MyBertEncoder(BertEncoder):
     def compute_layer_outputs(self,
                               output_attentions,layer_module,
                               hidden_states,attention_mask,layer_head_mask,
-                              encoder_hidden_states,encoder_attention_mask,
-                              t,s,token_type_ids,x_list,h_list,targets,
-                              start_mixup=False,pre_t=None,l=None,idx=None):
+                              encoder_hidden_states,encoder_attention_mask,**kwargs):
+
+        # add parameters --------------
+
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
+
+
         if getattr(self.config, "gradient_checkpointing", False):
             def create_custom_forward(module):
                 def custom_forward(*inputs):
@@ -564,8 +598,7 @@ class MyBertEncoder(BertEncoder):
                     encoder_hidden_states,
                     encoder_attention_mask,
                     output_attentions,
-                    targets=targets,
-                    t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s
                 )
                 layer_outputs = output_dict['outputs']
 
@@ -577,8 +610,7 @@ class MyBertEncoder(BertEncoder):
                     encoder_hidden_states,
                     encoder_attention_mask,
                     output_attentions,
-                    targets=targets,
-                    t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s
                 )
 
             else:
@@ -589,7 +621,7 @@ class MyBertEncoder(BertEncoder):
                     encoder_hidden_states,
                     encoder_attention_mask,
                     output_attentions,
-                    t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                    t=t,s=s
                 )
 
         return layer_outputs,x_list,h_list
@@ -603,11 +635,18 @@ class MyBertEncoder(BertEncoder):
         encoder_attention_mask=None,
         output_attentions=False,
         output_hidden_states=False,
-        return_dict=True,
-        h_list=None,x_list=None,
-        targets=None,t=None,s=1,token_type_ids=None,
-        start_mixup=False,pre_t=None,l=None,idx=None
+        return_dict=True,**kwargs
     ):
+
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
         all_hidden_states = () if output_hidden_states else None
         all_self_attentions = () if output_attentions else None
         all_cross_attentions = () if output_attentions and self.config.add_cross_attention else None
@@ -622,8 +661,8 @@ class MyBertEncoder(BertEncoder):
                           output_attentions,layer_module,
                           hidden_states,attention_mask,layer_head_mask,
                           encoder_hidden_states,encoder_attention_mask,
-                          t,s,token_type_ids,x_list,h_list,targets,
-                        start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                          t=t,s=s,x_list=x_list,h_list=h_list
+                        )
             hidden_states = layer_outputs[0]
 
             if output_attentions:
@@ -676,13 +715,10 @@ class MyBertModel(BertModel):
         encoder_attention_mask=None,
         output_attentions=None,
         output_hidden_states=None,
-        return_dict=None,
-        start_mixup=False,pre_t=None,
-        targets=None,
-        t=None,s=1,
-        l=None,idx=None
+        return_dict=None,**kwargs
     ):
-        #need to add "start_mixup", we first see what happen if we dont
+
+
         r"""
         encoder_hidden_states  (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `optional`):
             Sequence of hidden-states at the output of the last layer of the encoder. Used in the cross-attention if
@@ -694,7 +730,15 @@ class MyBertModel(BertModel):
             - 1 for tokens that are **not masked**,
             - 0 for tokens that are **masked**.
         """
-        # print('bertmodel l: ',l)
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
+
         x_list = [] #accumulate for every forward pass
         h_list = []
 
@@ -743,14 +787,13 @@ class MyBertModel(BertModel):
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
         embedding_output = self.embeddings(
-            input_ids=input_ids, position_ids=position_ids, token_type_ids=token_type_ids, inputs_embeds=inputs_embeds
+            input_ids=input_ids, position_ids=position_ids,  token_type_ids=token_type_ids, inputs_embeds=inputs_embeds
         )
 
         encoder_outputs,x_list,h_list = self.compute_encoder_outputs(
                                 embedding_output,extended_attention_mask,head_mask,
                                 encoder_hidden_states,encoder_extended_attention_mask,output_attentions,
-                                output_hidden_states,return_dict,t,s,token_type_ids,targets,
-                                x_list,h_list,start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx)
+                                output_hidden_states,return_dict,t=t,s=s,x_list=x_list,h_list=h_list)
 
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
@@ -771,9 +814,16 @@ class MyBertModel(BertModel):
     def compute_encoder_outputs(self,
                                 embedding_output,extended_attention_mask,head_mask,
                                 encoder_hidden_states,encoder_extended_attention_mask,output_attentions,
-                                output_hidden_states,return_dict,t,s,token_type_ids,targets,
-                                x_list,h_list,start_mixup=False,pre_t=None,l=None,idx=None):
+                                output_hidden_states,return_dict,**kwargs):
 
+
+        # add parameters --------------
+        s,t,x_list,h_list=None,None,None,None
+        if 't' in kwargs: t = kwargs['t']
+        if 's' in kwargs: s = kwargs['s']
+        if 'x_list' in kwargs: x_list = kwargs['x_list']
+        if 'h_list' in kwargs: h_list = kwargs['h_list']
+        # other parameters --------------
 
         if self.args.build_adapter_owm:
             output_dict = self.encoder(
@@ -784,8 +834,7 @@ class MyBertModel(BertModel):
                 encoder_attention_mask=encoder_extended_attention_mask,
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
-                return_dict=return_dict,x_list=x_list,h_list=h_list,
-                start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                return_dict=return_dict,x_list=x_list,h_list=h_list
             )
 
             encoder_outputs=output_dict['outputs']
@@ -801,9 +850,7 @@ class MyBertModel(BertModel):
                 encoder_attention_mask=encoder_extended_attention_mask,
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-                targets=targets,t=t,s=s,token_type_ids=token_type_ids,
-                start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                return_dict=return_dict, t=t,s=s
             )
 
             encoder_outputs=output_dict['outputs']
@@ -817,9 +864,7 @@ class MyBertModel(BertModel):
                 encoder_attention_mask=encoder_extended_attention_mask,
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-                targets=targets,t=t,s=s,token_type_ids=token_type_ids,
-                start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                return_dict=return_dict, t=t,s=s,
             )
         else:
             encoder_outputs = self.encoder(
@@ -830,8 +875,7 @@ class MyBertModel(BertModel):
                 encoder_attention_mask=encoder_extended_attention_mask,
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
-                return_dict=return_dict,t=t,s=s,
-                start_mixup=start_mixup,pre_t=pre_t,l=l,idx=idx
+                return_dict=return_dict,t=t,s=s
             )
 
         return encoder_outputs,x_list,h_list
@@ -841,8 +885,7 @@ class MyBertModel(BertModel):
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 def apply_chunking_to_forward(
-    forward_fn: Callable[..., torch.Tensor], chunk_size: int, chunk_dim: int, *input_tensors,
-    targets=None,t=None,s=1,token_type_ids=None,start_mixup=False,pre_t=None,l=None,idx=None
+    forward_fn: Callable[..., torch.Tensor], chunk_size: int, chunk_dim: int, *input_tensors,**kwargs
 ) -> torch.Tensor:
     """
     This function chunks the :obj:`input_tensors` into smaller input tensor parts of size :obj:`chunk_size` over the
@@ -877,6 +920,15 @@ def apply_chunking_to_forward(
             return apply_chunking_to_forward(self.forward_chunk, self.chunk_size_lm_head, self.seq_len_dim, hidden_states)
     """
 
+    # add parameters --------------
+    s, t, x_list, h_list = None, None, None, None
+    if 't' in kwargs: t = kwargs['t']
+    if 's' in kwargs: s = kwargs['s']
+    if 'x_list' in kwargs: x_list = kwargs['x_list']
+    if 'h_list' in kwargs: h_list = kwargs['h_list']
+    # other parameters --------------
+
+
     assert len(input_tensors) > 0, "{} has to be a tuple/list of tensors".format(input_tensors)
     tensor_shape = input_tensors[0].shape[chunk_dim]
     assert all(
@@ -903,15 +955,9 @@ def apply_chunking_to_forward(
         # chunk input tensor into tuples
         input_tensors_chunks = tuple(input_tensor.chunk(num_chunks, dim=chunk_dim) for input_tensor in input_tensors)
         # apply forward fn to every tuple
-        output_chunks = tuple(forward_fn(*input_tensors_chunk,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup) for input_tensors_chunk in zip(*input_tensors_chunks))
+        output_chunks = tuple(forward_fn(*input_tensors_chunk,t=t,s=s) for input_tensors_chunk in zip(*input_tensors_chunks))
         # concatenate output at same dimension
         return torch.cat(output_chunks, dim=chunk_dim)
 
-    if targets is not None:
-        return forward_fn(*input_tensors,
-                          targets=targets,t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,
-                          l=l,pre_t=pre_t,idx=idx)
-    else:
-        return forward_fn(*input_tensors,
-                          t=t,s=s,token_type_ids=token_type_ids,start_mixup=start_mixup,
-                          l=l,pre_t=pre_t,idx=idx)
+    return forward_fn(*input_tensors,
+                      t=t,s=s)

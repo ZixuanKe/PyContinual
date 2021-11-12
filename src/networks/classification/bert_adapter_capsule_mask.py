@@ -16,6 +16,7 @@ class Net(torch.nn.Module):
         super(Net,self).__init__()
         config = BertConfig.from_pretrained(args.bert_model)
         config.return_dict=False
+        args.build_adapter_capsule_mask = True
         self.bert = MyBertModel.from_pretrained(args.bert_model,config=config,args=args)
 
         for param in self.bert.parameters():

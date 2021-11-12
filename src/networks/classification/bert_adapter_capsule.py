@@ -15,6 +15,7 @@ class Net(torch.nn.Module):
         super(Net,self).__init__()
         config = BertConfig.from_pretrained(args.bert_model)
         config.return_dict=False
+        args.build_adapter_capsule = True
         self.bert = MyBertModel.from_pretrained(args.bert_model,config=config,args=args)
 
         for param in self.bert.parameters():
@@ -41,7 +42,6 @@ class Net(torch.nn.Module):
         self.args = args
         self.config = config
         self.num_task = len(taskcla)
-        self.num_class = 3
 
         self.apply_bert_attention_output = args.apply_bert_attention_output
         self.apply_bert_output = args.apply_bert_output
@@ -54,11 +54,9 @@ class Net(torch.nn.Module):
 
         output_dict = {}
 
-        targets = torch.eye(self.num_class).cuda().index_select(dim=0, index=targets)
 
         sequence_output, pooled_output = \
-            self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,
-                      targets=targets,t=t,s=s)
+            self.bert(input_ids=input_ids, token_type_ids=segment_ids, attention_mask=input_mask,t=t,s=s)
 
         pooled_output = self.dropout(pooled_output)
         y=[]

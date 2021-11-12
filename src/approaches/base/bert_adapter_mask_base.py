@@ -17,15 +17,13 @@ import torch.distributed as dist
 from torch.utils.data import TensorDataset, random_split
 import utils
 # from apex import amp
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from pytorch_pretrained_bert.modeling import BertForSequenceClassification
-from pytorch_pretrained_bert.optimization import BertAdam
+
 import torch.nn.functional as F
 import functools
 import torch.nn as nn
 from copy import deepcopy
 sys.path.append("./approaches/")
-from loss_metric_zoo import SupConLoss,DistillKL
+from contrastive_loss import SupConLoss,DistillKL
 
 
 #TODO: merge with bert_adapter_base.py
@@ -229,56 +227,27 @@ class Appr(object):
         else:
             mix_pooled_reps = [pooled_rep.clone().unsqueeze(1)]
 
-        orders = self.order_generation(t)
-        print('orders: ',orders)
 
-        neg_mix_pooled_reps = []
+        mix_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,start_mixup=True)
+        mix_output = mix_output_dict['y']
+        mix_masks = mix_output_dict['masks']
+        mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
 
-        for order_id,order in enumerate(orders):
-            mix_output_dict = self.model(t,input_ids, segment_ids, input_mask,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
-            mix_output = mix_output_dict['y']
-            mix_masks = mix_output_dict['masks']
-            mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
+        if 'til' in self.args.scenario:
+            mix_output = mix_output[t]
+        n_loss,_=self.hat_criterion_adapter(mix_output,targets,mix_masks) # it self is also training
+        amix_loss+=n_loss # let's first do some pre-training
 
-            if 'til' in self.args.scenario:
-                mix_output = mix_output[t]
-            n_loss,_=self.hat_criterion_adapter(mix_output,targets,mix_masks) # it self is also training
-            amix_loss+=n_loss # let's first do some pre-training
-
-            if self.args.use_dissimilar:
-                neg_mix_pooled_rep = mix_output_dict['neg_normalized_pooled_rep']
-                neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone())
-
-            if self.args.amix_head:
-                mix_pooled_reps.append(mix_output.unsqueeze(1).clone())
-            else:
-                mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
+        if self.args.amix_head:
+            mix_pooled_reps.append(mix_output.unsqueeze(1).clone())
+        else:
+            mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
 
 
         cur_mix_outputs = torch.cat(mix_pooled_reps, dim=1)
 
         amix_loss += self.sup_con(cur_mix_outputs, targets,args=self.args) #train attention and contrastive learning at the same time
         return amix_loss
-
-
-    def order_generation(self,t):
-        orders = []
-        nsamples = t
-        for n in range(self.args.naug):
-            if n == 0: orders.append([pre_t for pre_t in range(t)])
-            elif nsamples>=1:
-                orders.append(random.Random(self.args.seed).sample([pre_t for pre_t in range(t)],nsamples))
-                nsamples-=1
-        return orders
-
-    def idx_generator(self,bsz):
-        #TODO: why don't we generate more?
-        ls,idxs = [],[]
-        for n in range(self.args.ntmix):
-            ls.append(l)
-            idxs.append(idx)
-
-        return idxs,ls
 
 
     def hat_criterion_adapter_aux(self,outputs,targets,masks,t=None):

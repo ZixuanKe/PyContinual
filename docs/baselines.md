@@ -29,7 +29,7 @@ The full list so far is as follows:
 | [HAT](http://proceedings.mlr.press/v80/serra18a.html)| hat | bert/bert_kim/bert_adapter/w2v_as/w2v/cnn/mlp | ncl|
 | [CAT](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf)| cat | bert/bert_kim/w2v_as/w2v/cnn/mlp| ncl|
 | [B-CL](https://aclanthology.org/2021.naacl-main.378.pdf)| capsule_mask |bert_adapter | ncl|
-| CLASSIC | amix | bert_adapter | ncl|
+| [CLASSIC](https://aclanthology.org/2021.emnlp-main.550/) | amix | bert_adapter_mask | ncl|
 
 
 

@@ -14,11 +14,11 @@ from tqdm import tqdm, trange
 from seqeval.metrics import classification_report
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
-from pytorch_pretrained_bert.optimization import BertAdam
 import json
 from bayes_layer import BayesianLinear,_calculate_fan_in_and_fan_out, BayesianConv2D
 sys.path.append("./approaches/base/")
 from bert_adapter_base import Appr as ApprBase
+from my_optimization import BertAdam
 
 #TODO: double check correctnesss
 

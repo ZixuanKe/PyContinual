@@ -9,7 +9,6 @@ from memory import ContrastMemory
 from copy import deepcopy
 import functools
 import torch.nn.functional as F
-from loss_metric_zoo import SupConLoss,CRDLoss
 import random
 from buffer import Buffer as Buffer
 from itertools import zip_longest
@@ -258,10 +257,7 @@ class Appr(object):
             mix_pooled_reps = [pooled_rep.clone().unsqueeze(1)]
 
         if self.args.attn_type == 'self':
-            orders = self.order_generation(t)
-            # print('orders: ',orders)
-
-            neg_mix_pooled_reps = []
+            orders = [[pre_t for prre_t in range(t)]]
 
             for order_id,order in enumerate(orders):
                 if use_aux and fix_aux:
@@ -285,9 +281,6 @@ class Appr(object):
                 n_loss,_=self.criterion_hat(mix_output,targets,mix_masks) # it self is also training
                 amix_loss+=n_loss # let's first do some pre-training
 
-                if self.args.use_dissimilar:
-                    neg_mix_pooled_rep = mix_output_dict['neg_normalized_pooled_rep']
-                    neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone())
 
                 if self.args.amix_head:
                     if self.args.amix_head_norm:
@@ -299,40 +292,11 @@ class Appr(object):
                 else:
                     mix_pooled_reps.append(mix_pooled_rep.unsqueeze(1).clone())
 
-            if self.args.use_dissimilar:
-                neg_mix_pooled_reps.append(neg_mix_pooled_rep.unsqueeze(1).clone()) # in fact, this is only use as negative samples
-                neg_mix_pooled_reps = torch.cat(neg_mix_pooled_reps, dim=1)
-
         cur_mix_outputs = torch.cat(mix_pooled_reps, dim=1)
 
-        if self.args.use_dissimilar: #dissimilar as negative
-            cur_mix_outputs = torch.cat([cur_mix_outputs,neg_mix_pooled_reps],dim=0)
-            targets_ =  torch.cat([targets,targets],dim=0)
-            amix_loss += self.sup_con(cur_mix_outputs, targets_,args=self.args)
-
-        else:
-            amix_loss += self.sup_con(cur_mix_outputs, targets,args=self.args) #train attention and contrastive learning at the same time
+        amix_loss += self.sup_con(cur_mix_outputs, targets,args=self.args) #train attention and contrastive learning at the same time
         return amix_loss
 
-
-    def order_generation(self,t):
-        orders = []
-        nsamples = t
-        for n in range(self.args.naug):
-            if n == 0: orders.append([pre_t for pre_t in range(t)])
-            elif nsamples>=1:
-                orders.append(random.Random(self.args.seed).sample([pre_t for pre_t in range(t)],nsamples))
-                nsamples-=1
-        return orders
-
-    def idx_generator(self,bsz):
-        #TODO: why don't we generate more?
-        ls,idxs = [],[]
-        for n in range(self.args.ntmix):
-            ls.append(l)
-            idxs.append(idx)
-
-        return idxs,ls
 
 
     def ent_id_detection(self,trained_task,images,t):

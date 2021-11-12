@@ -1,4 +1,5 @@
 
+
   
   
   
@@ -17,12 +18,13 @@ We have implemented **40+** baselines, you can simply run them using the corresp
 ### Setup  
   
  - Firstly, download the availabele data in [Drive](https://drive.google.com/file/d/10hCJHDKYVw0tzSHk6YZrRMFsqNs57fzW/view?usp=sharing). Unzip it in the root folder. After doing that, you should see `./dat` and `./data` in the root folder (If you are going to use W2V, you can download the W2V from [here](https://drive.google.com/file/d/1BFrnjV0LMfsnPcTcHyQ4LKHWV065GzBq/view) and put it in the root folder)  
- - Secondly, go to the `./data_prep`, find the needed task sequence (e.g. asc_random). Move it out to the root folder  
+ - Secondly, go to the `./data_seq`, find the needed task sequence (e.g. asc_random). Move it out to the root folder  
 - Thirdly, install the required packages (alternatively, you may also refer to the `requirements.txt`  by running `conda create --name pycontinual --file requirements.txt`)
 	- `conda create -n pycontinual python=3.7`  
 	 - `conda activate pycontinual`  
 	 - `conda install pytorch torchvision torchaudio cudatoolkit=11.0 -c pytorch`  
 	 - `pip install transformers==4.10.2`  
+	 - `conda install datasets`
 	 - Depends on baselines, you may be prompted to install more packages. You can simply install them by running `conda install <pkg>`
 	  
 ### General Command Format  

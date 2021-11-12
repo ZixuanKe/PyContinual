@@ -17,12 +17,11 @@ import torch.distributed as dist
 from torch.utils.data import TensorDataset, random_split
 import utils
 # from apex import amp
-from pytorch_pretrained_bert.tokenization import BertTokenizer
-from pytorch_pretrained_bert.modeling import BertForSequenceClassification
-from pytorch_pretrained_bert.optimization import BertAdam
+
 from copy import deepcopy
 sys.path.append("./approaches/base/")
 from bert_adapter_base import Appr as ApprBase
+from my_optimization import BertAdam
 
 #TODO: attention mask
 

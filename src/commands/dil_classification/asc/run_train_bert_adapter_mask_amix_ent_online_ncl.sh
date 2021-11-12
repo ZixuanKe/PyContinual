@@ -9,7 +9,7 @@ for id in 0 1 2 3 4
 do
      python run.py \
     --bert_model 'bert-base-uncased' \
-    --note random$id,amix,Attn-HCHP-Outside,distill_head,sup,augment_distill,selfattn,naug1,task_based,ent_id,online\
+    --note random$id,classic,ent_id\
     --ntasks 19 \
     --nclasses 3 \
     --task asc \
@@ -31,10 +31,6 @@ do
     --distill_head \
     --sup_loss \
     --amix \
-    --attn_type self \
-    --task_based \
-    --mix_type Attn-HCHP-Outside \
-    --naug 1 \
     --ent_id \
     --resume_model \
     --eval_only \

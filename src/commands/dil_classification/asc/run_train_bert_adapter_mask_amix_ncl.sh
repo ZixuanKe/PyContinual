@@ -9,7 +9,7 @@ for id in 0
 do
     python run.py \
     --bert_model 'bert-base-uncased' \
-    --note random$id,amix,Attn-HCHP-Outside,distill_head,sup,augment_distill,selfattn,naug1,task_based,last_id\
+    --note random$id,classic\
     --ntasks 19 \
     --nclasses 3 \
     --task asc \
@@ -31,10 +31,6 @@ do
     --distill_head \
     --sup_loss \
     --amix \
-    --attn_type self \
-    --task_based \
-    --mix_type Attn-HCHP-Outside \
-    --naug 1 \
     --last_id
 done
 #--share_gate

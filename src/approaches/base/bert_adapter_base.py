@@ -18,7 +18,6 @@ from torch.utils.data import TensorDataset, random_split
 import utils
 import torch.nn.functional as F
 import nlp_data_utils as data_utils
-from pytorch_pretrained_bert.optimization import BertAdam
 from copy import deepcopy
 sys.path.append("./approaches/")
 from contrastive_loss import SupConLoss, CRDLoss

@@ -30,8 +30,6 @@ class MyContrastive(nn.Module):
 
 
         self.T = self.args.temp
-        if args.as_multilabel: self.smooth_ce = torch.nn.BCEWithLogitsLoss()
-        else: self.smooth_ce = LabelSmoothingCrossEntropy()
         self.ce=torch.nn.CrossEntropyLoss()
 
 
@@ -79,12 +77,7 @@ class MyContrastive(nn.Module):
         logits /= self.T
 
         # labels: positive key indicators
-
-        if self.args.smooth_ce:
-            amix_loss = self.smooth_ce(logits, weights)
-            # print('weights: ',weights)
-        else:
-            amix_loss = self.ce(logits, tasks)
+        amix_loss = self.ce(logits, tasks)
 
         return amix_loss
 
