@@ -13,8 +13,8 @@ from typing import Callable, Dict, Optional
 import torch
 
 def asc_config(parser):
-    parser.add_argument('--experiment',default='',type=str,required=False,help='(default=%(default)s)')
-    parser.add_argument('--approach',default='',type=str,required=True,help='(default=%(default)s)')
+    parser.add_argument('--backbone',default='',type=str,required=False,help='(default=%(default)s)')
+    parser.add_argument('--baseline',default='',type=str,required=True,help='(default=%(default)s)')
     parser.add_argument('--task',default='',type=str,required=True,help='(default=%(default)s)')
     parser.add_argument('--scenario',default='',type=str,required=True,help='(default=%(default)s)')
     parser.add_argument('--output',default='',type=str,required=False,help='(default=%(default)s)')
@@ -35,7 +35,6 @@ def asc_config(parser):
     parser.add_argument('--sbatch',default=64,type=int,required=False,help='(default=%(default)f)')
     parser.add_argument('--output_dir',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--model_path',default='',type=str,required=False,help='(default=%(default)s)')
-    parser.add_argument('--aux_model_path',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--bert_mask_adapter_size',default=2000,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--bert_adapter_size',default=2000,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--mlp_adapter_size',default=2000,type=int,required=False,help='(default=%(default)d)')
@@ -43,6 +42,7 @@ def asc_config(parser):
     parser.add_argument('--num_semantic_cap',default=3,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--mid_size',default=100,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--experiment_id',type=int,default=0)
+    parser.add_argument('--use_predefine_args', action='store_true')
     parser.add_argument('--temp', type=float, default=1,
                         help='temperature for loss function')
     parser.add_argument('--base_temp', type=float, default=1,
@@ -58,7 +58,6 @@ def asc_config(parser):
     parser.add_argument('--trans_loss', action='store_true')
     parser.add_argument('--true_id', action='store_true')
     parser.add_argument('--larger_as_list', action='store_true')
-    parser.add_argument('--aux_net', action='store_true')
     parser.add_argument('--resume_model', action='store_true')
     parser.add_argument('--head_ewc', action='store_true')
     parser.add_argument('--head_robust', action='store_true')
@@ -70,7 +69,6 @@ def asc_config(parser):
     parser.add_argument('--ngpus',type=int,default=0)
     parser.add_argument('--resume_from_task',type=int,default=0)
     parser.add_argument('--resume_from_file',type=str,default='')
-    parser.add_argument('--resume_from_aux_file',type=str,default='')
     parser.add_argument('--sample_gate_in_ouput', action='store_true')
     parser.add_argument('--re_forward', action='store_true')
     parser.add_argument('--two_stage', action='store_true')
@@ -87,7 +85,6 @@ def asc_config(parser):
     parser.add_argument('--last_id', action='store_true')
     parser.add_argument('--ent_id', action='store_true')
     parser.add_argument('--entropy_loss', action='store_true')
-    parser.add_argument('--unify_detect', action='store_true')
     parser.add_argument('--share_conv', action='store_true')
     parser.add_argument('--distributed', action='store_true')
     parser.add_argument('--build_adapter', action='store_true')
@@ -131,7 +128,6 @@ def asc_config(parser):
     parser.add_argument('--current_head',action='store_true')
     parser.add_argument('--transfer_route',action='store_true')
     parser.add_argument('--no_capsule',action='store_true')
-    parser.add_argument('--use_crf',action='store_true')
     parser.add_argument('--momentum', action='store_true')
     parser.add_argument('--nepochs', type=int, default=100)
     parser.add_argument('--srk_train_batch_size', type=int, default=32)
@@ -323,9 +319,7 @@ def augment_config(parser):
     parser.add_argument('--use_soft_ce', action='store_true')
     parser.add_argument('--nsamples',type=int,default=1)
     parser.add_argument('--hat_as_aug', action='store_true')
-    parser.add_argument('--aux_nepochs',type=int,default=500)
     parser.add_argument('--loss_ratio', default='1', type=float, help='(default=%(default)f)')
-    parser.add_argument('--is_aux', action='store_true')
     parser.add_argument('--share_gate', action='store_true')
     parser.add_argument('--sup_head_norm',action='store_true')
     parser.add_argument('--amix_head_norm',action='store_true')

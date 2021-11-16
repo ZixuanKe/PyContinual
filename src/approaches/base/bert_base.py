@@ -36,11 +36,6 @@ class Appr(object):
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
-        args.output_dir = args.output_dir.replace(
-            '[PT_OUTPUT_DIR]', os.getenv('PT_OUTPUT_DIR', ''))
-        os.makedirs(args.output_dir, exist_ok=True)
-        json.dump(args.__dict__, open(os.path.join(
-            args.output_dir, 'opt.json'), 'w'), sort_keys=True, indent=2)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.n_gpu = torch.cuda.device_count()

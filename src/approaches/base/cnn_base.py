@@ -23,10 +23,8 @@ from copy import deepcopy
 #TODO: CNN based contrastive learning
 class Appr(object):
 
-    def __init__(self,model,aux_model=None,lr=0.05,lr_min=1e-4,lr_factor=3,lr_patience=5,clipgrad=10000,args=None,taskcla=None,logger=None):
+    def __init__(self,model,lr=0.05,lr_min=1e-4,lr_factor=3,lr_patience=5,clipgrad=10000,args=None,taskcla=None,logger=None):
         self.model=model
-        self.aux_model=aux_model
-        self.aux_nepochs=args.aux_nepochs
         self.nepochs=args.nepochs
         self.train_batch_size=args.train_batch_size
         self.eval_batch_size=args.eval_batch_size
@@ -55,7 +53,7 @@ class Appr(object):
         self.my_con = MyContrastive(args=args) # let's use a new version of contrastive loss
 
 
-        if 'ucl' in args.approach:
+        if  args.baseline=='ucl':
             self.model_old = deepcopy(self.model)
             self.lr_rho = args.lr_rho
             self.lr_min = args.lr / (args.lr_factor ** 5)
@@ -69,48 +67,48 @@ class Appr(object):
             for (name, p) in self.model.named_parameters():
                 self.param_name.append(name)
 
-        if 'one' in args.approach:
+        if  args.baseline=='one':
             self.model=model
             self.initial_model=deepcopy(model)
 
-        if 'ewc' in args.approach:
+        if args.baseline=='ewc':
             self.model=model
             self.model_old=None
             self.fisher=None
             self.lamb=args.lamb                      # Grid search = [500,1000,2000,5000,10000,20000,50000]; best was 5000
 
 
-        if 'owm' in args.approach:
+        if  args.baseline=='owm':
             dtype = torch.cuda.FloatTensor  # run on GPU
             self.test_max = 0
 
-            if 'cnn' in args.approach:
+            if args.backbone=='cnn':
                 self.Pc1 = torch.autograd.Variable(torch.eye(3 * 2 * 2).type(dtype), volatile=True)
                 self.Pc2 = torch.autograd.Variable(torch.eye(64 * 2 * 2).type(dtype), volatile=True)
                 self.Pc3 = torch.autograd.Variable(torch.eye(128 * 2 * 2).type(dtype), volatile=True)
                 self.P1 = torch.autograd.Variable(torch.eye(256 * 4 * 4).type(dtype), volatile=True)
                 self.P2 = torch.autograd.Variable(torch.eye(1000).type(dtype), volatile=True)
 
-            elif 'mlp' in args.approach:
+            elif args.backbone=='mlp':
                 self.P1 = torch.autograd.Variable(torch.eye(args.image_channel*args.image_size*args.image_size).type(dtype), volatile=True)
                 self.P2 = torch.autograd.Variable(torch.eye(args.mlp_adapter_size).type(dtype), volatile=True)
 
 
-        if 'der' in args.approach:
+        if  args.baseline=='derpp':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             self.mse = torch.nn.MSELoss()
 
-        if 'acl' in args.approach:
+        if  args.baseline=='acl':
             self.buffer = Buffer(self.args.buffer_size, self.device)
 
-        if 'hal' in args.approach:
+        if  args.baseline=='hal':
             self.buffer = Buffer(self.args.buffer_size, self.device, self.args.ntasks, mode='ring')
             self.spare_model = deepcopy(model)
             self.finetuning_epochs = 1
             self.anchor_optimization_steps = 100
             self.spare_opt = torch.optim.SGD(self.spare_model.parameters(), lr=self.args.lr)
 
-        if 'cat' in args.approach:
+        if  args.baseline=='cat':
             self.smax = 400
             self.thres_cosh=50
             self.thres_emb=6
@@ -129,7 +127,7 @@ class Appr(object):
             self.history_mask_pre = []
             self.similarities = []
 
-        if 'mtl' in args.approach:
+        if  args.baseline=='mtl':
             self.initial_model = deepcopy(model)
 
         print('CNN BASE')
@@ -161,10 +159,6 @@ class Appr(object):
     def _get_optimizer(self,lr=None):
         if lr is None: lr=self.lr
         return torch.optim.SGD(self.model.parameters(),lr=lr)
-
-    def _get_optimizer_aux(self,lr=None):
-        if lr is None: lr=self.lr
-        return torch.optim.SGD(self.aux_model.parameters(),lr=lr)
 
     def _get_optimizer_owm(self, lr=None):
         # if lr is None:
@@ -208,7 +202,7 @@ class Appr(object):
         return sup_loss
 
 
-    def augment_distill_loss(self,output,pooled_rep,images,targets, t,use_aux=False):
+    def augment_distill_loss(self,output,pooled_rep,images,targets, t):
         augment_distill_loss = 0
         for pre_t in range(t):
             if self.args.distill_head:
@@ -217,10 +211,7 @@ class Appr(object):
                 outputs = [pooled_rep.clone().unsqueeze(1)]
 
             with torch.no_grad(): #previous models are fixed in any time
-                if use_aux:
-                    pre_output_dict = self.aux_model(pre_t,images,s=self.smax)
-                else:
-                    pre_output_dict = self.model(pre_t,images,s=self.smax)
+                pre_output_dict = self.model(pre_t,images,s=self.smax)
             pre_pooled_rep = pre_output_dict['normalized_pooled_rep']
 
             if self.args.distill_head_norm:
@@ -244,7 +235,7 @@ class Appr(object):
 
 
 
-    def amix_loss(self,output,pooled_rep,images,targets, t,s,use_aux=False,fix_aux=False):
+    def amix_loss(self,output,pooled_rep,images,targets, t,s):
 
         #s1: train hat
         #s2: train aux: aux
@@ -260,17 +251,7 @@ class Appr(object):
             orders = [[pre_t for prre_t in range(t)]]
 
             for order_id,order in enumerate(orders):
-                if use_aux and fix_aux:
-                    with torch.no_grad():
-                        print('use and fix aux')
-                        mix_output_dict = self.aux_model(t,images,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
-
-                elif use_aux:
-                    # print('train aux')
-                    mix_output_dict = self.aux_model(t,images,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
-
-                else:
-                    mix_output_dict = self.model(t,images,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
+                mix_output_dict = self.model(t,images,s=s,start_mixup=True,l=order,idx=order_id,mix_type=self.args.mix_type)
                 mix_output = mix_output_dict['y']
                 mix_masks = mix_output_dict['masks']
                 mix_pooled_rep = mix_output_dict['normalized_pooled_rep']
@@ -313,7 +294,7 @@ class Appr(object):
             entrop_to_test = range(0, trained_task + 1)
         # print('entrop_to_test: ',list(entrop_to_test))
         for e in entrop_to_test:
-            if 'acl' in self.args.approach:
+            if 'acl' in self.args.baseline:
                 task = torch.LongTensor([e]).repeat(images.size(0))
                 tt=task.to(device=self.device)
                 output_dict=self.model(images, images, tt, trained_task)
@@ -323,7 +304,7 @@ class Appr(object):
                 elif 'til' in self.args.scenario:
                     output = output_dict['y'][e]
 
-            elif 'hat_merge' in self.args.approach:
+            elif 'hat_merge' in self.args.baseline:
                 output_dict = self.model.forward(images)
 
                 if 'dil' in self.args.scenario:
@@ -331,7 +312,7 @@ class Appr(object):
                 elif 'til' in self.args.scenario:
                     output = output_dict['y'][e]
 
-            elif 'hat' in self.args.approach:
+            elif 'hat' in self.args.baseline:
                 output_dict = self.model.forward(e,images,s=self.smax)
                 masks = output_dict['masks']
                 output_d['masks']= masks
@@ -341,14 +322,14 @@ class Appr(object):
                 elif 'til' in self.args.scenario:
                     output = output_dict['y'][e]
 
-            elif 'ucl' in self.args.approach:
+            elif 'ucl' in self.args.baseline:
                 output_dict = self.model.forward(images,sample=False)
                 if 'dil' in self.args.scenario:
                     output = output_dict['y']
                 elif 'til' in self.args.scenario:
                     output = output_dict['y'][e]
 
-            elif 'cat' in self.args.approach:
+            elif 'cat' in self.args.baseline:
                 output_dict = self.model.forward(e,images,s=self.smax,phase='mcl',similarity=self.similarities[-1],
                                                         history_mask_pre=self.history_mask_pre,check_federated=self.check_federated)
                 if 'dil' in self.args.scenario:
@@ -379,7 +360,7 @@ class Appr(object):
         inf_task_id = torch.argmin(torch.stack(entropies))
         # print('inf_task_id: ',inf_task_id)
         output=outputs[inf_task_id]
-        if 'cat' in self.args.approach:
+        if 'cat' in self.args.baseline:
             output_attn = outputs_attn[inf_task_id]
             output_d['output_attn']= output_attn
 
@@ -414,8 +395,6 @@ class Appr(object):
                 reg+=m.sum()
                 count+=np.prod(m.size()).item()
 
-        print('reg: ',reg)
-        print('count: ',count)
         reg/=count
 
         return self.ce(outputs,targets)+self.lamb*reg,reg

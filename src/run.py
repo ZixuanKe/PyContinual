@@ -28,7 +28,7 @@ import import_classification as import_modules
 # Load Data.
 # ----------------------------------------------------------------------
 print('Load data...')
-if args.experiment=='w2v' or args.experiment=='w2v_as':
+if args.backbone=='w2v' or args.backbone=='w2v_as':
     data,taskcla,vocab_size,embeddings=import_modules.dataloader.get(logger=logger,args=args)
 else:
     data,taskcla=import_modules.dataloader.get(logger=logger,args=args)
@@ -43,56 +43,38 @@ print('Inits...')
 # Apply approach and network.
 # ----------------------------------------------------------------------
 
-if 'owm' in args.approach:
+if 'owm' in args.baseline:
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    if 'bert' in args.approach or 'cnn' in args.approach or 'mlp' in args.approach:
-        net = import_modules.network.Net(taskcla,args=args)
-    elif 'w2v' in args.approach:
+    if 'w2v' in args.baseline:
         net=import_modules.network.Net(taskcla,embeddings,args=args)
+    else:
+        net = import_modules.network.Net(taskcla,args=args)
 
 
-elif 'ucl' in args.approach:
+
+elif 'ucl' in args.baseline:
     torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    if 'bert' in args.approach or 'cnn' in args.approach or 'mlp' in args.approach:
+    if 'w2v' in args.baseline:
+        net = import_modules.network.Net(taskcla, embeddings, args.ratio,args=args)
+        net_old = import_modules.network.Net(taskcla, embeddings, args.ratio,args=args)
+    else:
         net = import_modules.network.Net(taskcla,args=args)
         net_old = import_modules.network.Net(taskcla,args=args)
 
-    elif 'w2v' in args.approach:
-        net = import_modules.network.Net(taskcla, embeddings, args.ratio,args=args)
-        net_old = import_modules.network.Net(taskcla, embeddings, args.ratio,args=args)
+
 else:
-    if args.aux_net: #this is for 2 network setting
-        print('net')
-        args.is_aux = False
-        net=import_modules.network.Net(taskcla,args=args)
-        print('aux net')
-        args.is_aux = True
-        aux_net=import_modules.aux_network.Net(taskcla,args=args)
-
-
-    if 'w2v' in args.approach:
+    if 'w2v' in args.baseline:
         net=import_modules.network.Net(taskcla,embeddings,args=args)
     else:
         net=import_modules.network.Net(taskcla,args=args)
-    logger.info('count: '+str(torch.cuda.device_count()))
 
 
 if 'net' in locals(): net = net.to(device)
-if 'aux_net' in locals(): aux_net = aux_net.to(device)
 if 'net_old' in locals(): net_old = net_old.to(device)
-
-
-
-if args.aux_net:
-    appr=import_modules.approach.Appr(net,aux_net,logger=logger,taskcla=taskcla,args=args)
-else:
-    appr=import_modules.approach.Appr(net,logger=logger,taskcla=taskcla,args=args)
+appr=import_modules.approach.Appr(net,logger=logger,taskcla=taskcla,args=args)
 
 if not args.eval_each_step:
-    if args.aux_net:
-        resume_checkpoint(appr,net,aux_net)
-    else:
-        resume_checkpoint(appr,net,None)
+    resume_checkpoint(appr,net)
 
 
 if args.multi_gpu and args.distributed:
@@ -112,9 +94,6 @@ elif args.multi_gpu:
     logger.info('multi_gpu')
     net = torch.nn.DataParallel(net)
     net = net.to(device)
-    if args.aux_net:
-        aux_net = torch.nn.DataParallel(aux_net)
-        aux_net = aux_net.to(device)
 
 if args.print_report:
     utils.print_model_report(net)
@@ -146,7 +125,7 @@ for t,ncla in taskcla:
 
     # if t>1: exit()
 
-    if 'mtl' in args.approach:
+    if 'mtl' in args.baseline:
         # Get data. We do not put it to GPU
         if t==0:
             train=data[t]['train']
@@ -213,7 +192,7 @@ for t,ncla in taskcla:
         logger.info('[Elapsed time per epochs = {:.1f} s]'.format((time.time()-tstart)))
         logger.info('[Elapsed time per epochs = {:.1f} min]'.format((time.time()-tstart)/(60)))
         logger.info('[Elapsed time per epochs = {:.1f} h]'.format((time.time()-tstart)/(60*60)))
-        if 'kim' not in args.approach and 'mlp' not in args.approach and 'cnn' not in args.approach:
+        if 'kim' not in args.baseline and 'mlp' not in args.baseline and 'cnn' not in args.baseline:
             if 'asc' in args.task: pre_define_num_epochs = 30 #non-semeval estimation
             elif 'dsc' in args.task: pre_define_num_epochs = 20
             elif 'newsgroup' in args.task: pre_define_num_epochs = 10
@@ -280,10 +259,10 @@ for t,ncla in taskcla:
 
         if args.task in classification_tasks: #classification task
 
-            if 'kan' in args.approach:
+            if 'kan' in args.baseline:
                 test_loss,test_acc,test_f1_macro=appr.eval(u,test_dataloader,test,which_type='mcl',trained_task=t)
                 logger.info('>>> Test on task {:2d} - {:15s}: loss={:.3f}, acc={:5.1f}% <<<'.format(u,data[u]['name'],test_loss,100*test_acc))
-            elif 'cat' in args.approach:
+            elif 'cat' in args.baseline:
                 valid=data[u]['valid']
                 valid_sampler = SequentialSampler(valid)
                 valid_dataloader = DataLoader(valid, sampler=valid_sampler, batch_size=args.eval_batch_size,pin_memory=True)
@@ -321,19 +300,19 @@ for t,ncla in taskcla:
 
 
             with open(performance_output,'w') as file, open(f1_macro_output,'w') as f1_file:
-                if 'ncl' in args.approach  or 'mtl' in args.approach:
+
+                if args.baseline=='one':
+                    for j in range(acc.shape[1]):
+                        file.writelines(str(acc[j][j]) + '\n')
+                        f1_file.writelines(str(f1_macro[j][j]) + '\n')
+                else:
                     for j in range(acc.shape[1]):
                         file.writelines(str(acc[-1][j]) + '\n')
                         f1_file.writelines(str(f1_macro[-1][j]) + '\n')
 
-                elif 'one' in args.approach:
-                    for j in range(acc.shape[1]):
-                        file.writelines(str(acc[j][j]) + '\n')
-                        f1_file.writelines(str(f1_macro[j][j]) + '\n')
-
 
             with open(performance_output_forward,'w') as file, open(f1_macro_output_forward,'w') as f1_file:
-                if 'ncl' in args.approach  or 'mtl' in args.approach:
+                if not args.baseline=='one':
                     for j in range(acc.shape[1]):
                         file.writelines(str(acc[j][j]) + '\n')
                         f1_file.writelines(str(f1_macro[j][j]) + '\n')

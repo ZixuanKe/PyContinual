@@ -1,5 +1,7 @@
 
 
+
+
   
   
   
@@ -28,17 +30,20 @@ We have implemented **40+** baselines, you can simply run them using the corresp
 	 - Depends on baselines, you may be prompted to install more packages. You can simply install them by running `conda install <pkg>`
 	  
 ### General Command Format  
-     python run.py \   
-       --task dsc\   
-       --ntasks 10 \    
-       --idrandom $id \    
-       --scenario til_classification \     
-       --approach bert_kim_hat_ncl \    
-       --eval_batch_size 128 \    
-       --train_batch_size 32 \    
-       --num_train_epochs 10   
+    python  run.py \  
+		--bert_model 'bert-base-uncased' \  
+		--backbone bert_adapter \  
+		--baseline ctr \  
+		--task asc \  
+		--eval_batch_size 128 \  
+		--train_batch_size 32 \  
+		--scenario til_classification \
+		--idrandom 0  \
+		--use_predefine_args
+		
 Above shows a typical command to run PyContinual. Some of the arguments are easy to understand, We further explain some PyContinual arguments:  
-  
+  - `idrandom`: which random sequence you want to use  
+  - `use_reset_param`: we have provide some  pre-define argument in `./load_base_args.py`. This argument will tell the program to use the pre-define argument
  - `task` There are 4 supported taskls so far  
    - `asc`: aspect ssentiment classification  
    - `dsc`: document sentiemnt classification  
@@ -49,27 +54,52 @@ Above shows a typical command to run PyContinual. Some of the arguments are easy
  - `scenario` There are 2 supproted senario  
    - `til_classification`: task incremental learning for classification task  
    - `dil_classification`: domain incremental learning for classification task  
- - `appraoch`: This is to indicate the baseline, backbone and approach you want to run. For example, `bert_kim_hat_ncl` means you use `bert_kim` as backbone model, `hat` as your baseline and `ncl` as your approach. See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md) for more  
+ - `baseline`: which baseline you want to run. See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md) for more
+ - `backbone`: which backbone model you want to use. See [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md) for more
 ### Example Commands   
-#### Example Commands Location  
-  
- `./commands/[d/t]il_classification/[dataset]/` [d/t]: indicate task incremental learning (TIL) or domain incremental (DIL) [dataset]: indicate your datasets (see ./dataloader to see the available datasets, e.g. asc, dsc, nli...)  
-  
-#### Format  
- `run_train_[network]_[approach_specification]_[approach].sh` [network]: bert/bert_kim/bert_gru/bert_adapter/w2v_as [approach_specification]: optional, e.g. cat, hat, ewc, agem... [approach]: ncl/one/mtl/ [more options please refere to .sh files, run.py and config.py.]  For full list of implemented baselines, please see [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)  
-  
-     
   
 #### Examples:  
   
-  To run CLASSIC:    
-`./commands/dil_classification/asc/run_train_bert_adapter_amix_ncl.sh`   
+
   To run B-CL:    
-`./commands/til_classification/asc/run_train_bert_adapter_capsule_mask_ncl.sh`     
-           
- To run KAN:    
-`./commands/til_classification/asc/run_train_bert_gru_kan_ncl.sh`   
-  To run CAT:    
-`./commands/til_classification/asc/run_train_bert_kim_cat_ncl.sh`   
+
+    python  run.py \  
+		--bert_model 'bert-base-uncased' \   
+		--backbone bert_adapter \  
+		--baseline b-cl\  
+		--task asc \  
+		--eval_batch_size 128 \  
+		--train_batch_size 32 \  
+		--scenario til_classification \  
+		--idrandom 0  \
+		--use_predefine_args
+
+ To run CLASSIC:    
+
+    python  run.py \  
+		--bert_model 'bert-base-uncased' \   
+		--backbone bert_adapter \  
+		--baseline classic\  
+		--task asc \  
+		--eval_batch_size 128 \  
+		--train_batch_size 32 \  
+		--scenario dil_classification \  
+		--idrandom 0  \
+		--use_predefine_args
+ 
+  To run CTR:    
+
+    python  run.py \  
+		--bert_model 'bert-base-uncased' \   
+		--backbone bert_adapter \  
+		--baseline ctr \  
+		--task asc \  
+		--eval_batch_size 128 \  
+		--train_batch_size 32 \  
+		--scenario til_classification \  
+		--idrandom 0  \
+		--use_predefine_args
+
+  
 #### Examples Results:  
 The example results will be saved in `./res/til_classification/asc/` and `./res/dil_classification/asc/`

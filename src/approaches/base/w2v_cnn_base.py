@@ -37,22 +37,22 @@ class Appr(object):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.n_gpu = torch.cuda.device_count()
 
-        if 'one' in args.approach:
+        if args.baseline=='one':
             self.model=model
             self.initial_model=deepcopy(model)
 
-        if 'ewc' in args.approach:
+        if  args.baseline=='ewc':
             self.model_old=None
             self.fisher=None
             self.lamb=args.lamb                      # Grid search = [500,1000,2000,5000,10000,20000,50000]; best was 5000
 
-        if 'kan' in args.approach:
+        if  args.baseline=='kan':
             self.smax = 400
             self.thres_cosh=50
             self.thres_emb=6
             self.lamb=0.75
 
-        if 'ucl' in args.approach:
+        if  args.baseline=='ucl':
             self.model_old = deepcopy(self.model)
             self.lr_rho = args.lr_rho
             self.lr_min = args.lr / (args.lr_factor ** 5)
@@ -66,7 +66,7 @@ class Appr(object):
             for (name, p) in self.model.named_parameters():
                 self.param_name.append(name)
 
-        if 'owm' in args.approach:
+        if  args.baseline=='owm':
             dtype = torch.cuda.FloatTensor  # run on GPU
             self.Pc1 = torch.autograd.Variable(torch.eye(100).type(dtype), volatile=True)
             self.Pc2 = torch.autograd.Variable(torch.eye(100).type(dtype), volatile=True)
@@ -75,12 +75,12 @@ class Appr(object):
             self.P2 = torch.autograd.Variable(torch.eye(300).type(dtype), volatile=True)
             self.test_max = 0
 
-        if 'srk' in args.approach:
+        if  args.baseline=='srk':
             self.control_1_s = torch.zeros(args.w2v_hidden_size).cuda()
             self.control_2_s = torch.zeros(args.w2v_hidden_size).cuda()
             self.control_3_s = torch.zeros(args.w2v_hidden_size).cuda()
 
-        if 'hat' in args.approach:
+        if  args.baseline=='hat':
             self.smax = 400
             self.thres_cosh=50
             self.thres_emb=6
@@ -89,11 +89,11 @@ class Appr(object):
             self.mask_back=None
 
 
-        if 'der' in args.approach:
+        if  args.baseline=='derpp':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             self.mse = torch.nn.MSELoss()
 
-        if 'a-gem' in args.approach:
+        if  args.baseline=='a-gem':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             self.grad_dims = []
             for param in self.model.parameters():
@@ -101,7 +101,7 @@ class Appr(object):
             self.grad_xy = torch.Tensor(np.sum(self.grad_dims)).to(self.device)
             self.grad_er = torch.Tensor(np.sum(self.grad_dims)).to(self.device)
 
-        if 'l2' in args.approach:
+        if  args.baseline=='l2':
             self.lamb=self.args.lamb                      # Grid search = [500,1000,2000,5000,10000,20000,50000]; best was 5000
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}  # For convenience
@@ -110,7 +110,7 @@ class Appr(object):
             self.online_reg = False  # True: There will be only one importance matrix and previous model parameters
                                     # False: Each task has its own importance matrix and model parameters
 
-        if 'cat' in args.approach:
+        if args.baseline=='cat':
             self.smax = 400
             self.thres_cosh=50
             self.thres_emb=6
@@ -290,11 +290,11 @@ class Appr(object):
 
         for e in entrop_to_test:
             e_task=torch.LongTensor([e]).cuda()
-            if 'hat' in self.args.approach:
+            if 'hat' in self.args.baseline:
                 output_dict = self.model.forward(e_task,tokens_term_ids, tokens_sentence_ids,s=self.smax)
                 masks = output_dict['masks']
                 output_d['masks']= masks
-            elif 'kan' in self.args.approach:
+            elif 'kan' in self.args.baseline:
                 output_dict = self.model.forward(e_task,tokens_term_ids, tokens_sentence_ids,which_type,s=self.smax)
             output = output_dict['y']
             outputs.append(output) #shared head

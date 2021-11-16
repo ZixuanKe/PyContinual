@@ -10,9 +10,12 @@
 
 
 
+
+
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 This repository contains the code for the following papers:
+*  [Achieving Forgetting Prevention and Knowledge Transfer in Continual Learning](https://proceedings.neurips.cc/paper/2021/hash/bcd0049c35799cdf57d06eaf2eb3cff6-Abstract.html), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), Nianzu Ma, [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/), NeurIPS 2021
 *  [CLASSIC: Continual and Contrastive Learning of Aspect Sentiment Classification Tasks](https://aclanthology.org/2021.emnlp-main.550/), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/), EMNLP 2021
 *  [Adapting BERT for Continual Learning of a Sequence of Aspect Sentiment Classification Tasks](https://www.aclweb.org/anthology/2021.naacl-main.378.pdf), Zixuan Ke, [Hu Xu](https://howardhsu.github.io/) and [Bing Liu](https://www.cs.uic.edu/~liub/), NAACL 2021
 * [Continual Learning of a Mixed Sequence of Similar and Dissimilar Tasks](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/) and [Xingchang Huang](https://people.mpi-inf.mpg.de/~xhuang/), NeurIPS 2020 (if you only care about this model, you can also check [CAT](https://github.com/ZixuanKe/CAT))
@@ -41,14 +44,18 @@ Recently, continual learning approaches have drawn more and more attention. This
 * If you want to run the existing systems, please see [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)
 * If you want to expand the framework with your own model, please see  [run_own.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_own.md)
 * If you want to see the full list of baselines and variants, please see [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)
-* [FAQ](https://github.com/ZixuanKe/PyContinual/blob/master/docs/faq.md)
-
-[comment]: <> (* [Change Logs]&#40;https://github.com/ZixuanKe/PyContinual/blob/master/docs/log.md&#41;)
 
 
 ## Reference
 If using this code, parts of it, or developments from it, please consider cite the references bellow.
 
+	@inproceedings{ke2021achieve,
+	  title={Achieving Forgetting Prevention and Knowledge Transfer in Continual Learning},
+	  author={Ke, Zixuan and Liu, Bing and Ma, Nianzu and Xu, Hu, and Lei Shu},
+	  booktitle={NeurIPS},
+	  year={2021}
+	}
+	
 	@inproceedings{ke2021contrast,
 	  title={CLASSIC: Continual and Contrastive Learning of Aspect Sentiment Classification Tasks},
 	  author={Ke, Zixuan and Liu, Bing and Xu, Hu, and Lei Shu},

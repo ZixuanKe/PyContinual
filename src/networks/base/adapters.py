@@ -7,7 +7,7 @@ import numpy as np
 import random
 import sys
 sys.path.append("./networks/base/")
-from bayes_layer import BayesianLinear,_calculate_fan_in_and_fan_out, BayesianConv2D
+from bayes_layer import BayesianLinear, BayesianConv2D
 
 
 class BertAdapter(nn.Module):
@@ -406,7 +406,7 @@ class CapsuleLayerImp(nn.Module): #it has its own number of capsule for output
         return scale * input_tensor / torch.sqrt(squared_norm)
 
 # --------------------------
-# Belows arefor  B-CL
+# Belows are for  B-CL
 # --------------------------
 
 
@@ -422,7 +422,6 @@ class BertAdapterCapsuleMask(BertAdapterMask):
 
     def forward(self,x,t,s):
         # task shared
-        margin_loss = 0
         capsule_output = self.capsule_net(t,x,s)
 
         h = x + capsule_output #skip-connection
@@ -444,7 +443,7 @@ class BertAdapterCapsuleMask(BertAdapterMask):
             h=self.activation(self.fc2(h))
             h=h*gfc2.expand_as(h)
 
-        return {'outputs':x + h,'margin_loss':margin_loss}
+        return {'outputs':x + h}
 
 
 

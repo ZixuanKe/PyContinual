@@ -63,28 +63,6 @@ domains = [
      'Bing9domains_Norton']
 
 
-def down_sampling(examples,down_sample_ratio,args):
-    label_list = ['positive','negative','+','-']
-
-    # print('examples: ',len(examples))
-    example_label = {}
-    for (ex_index,example) in enumerate(examples):
-        if example.label not in example_label:
-            example_label[example.label] = [example]
-        else:
-            example_label[example.label].append(example)
-
-    # print('example_label: ',example_label)
-    final_examples = []
-    for label in label_list:
-        if label not in example_label: continue
-        # print('len(example_label[label]): ',len(example_label[label]))
-        down_sampled_data_size = int(down_sample_ratio * len(example_label[label]))
-        if down_sampled_data_size == 0:
-            final_examples += example_label[label][:1] #randonly pick 1 to add, if the down_sampled_size is too small
-        elif down_sample_ratio > 0:
-            final_examples += example_label[label][:down_sampled_data_size]
-    return final_examples
 
 
 
@@ -110,7 +88,7 @@ def get(logger=None,args=None):
         data[t]={}
         if 'Bing' in dataset:
             data[t]['name']=dataset
-            if 'der' in args.approach or 'a-gem' in args.approach: data[t]['ncla']=3
+            if args.baseline=='derpp' or args.baseline=='a-gem': data[t]['ncla']=3
             else: data[t]['ncla']=2
         elif 'XuSemEval' in dataset:
             data[t]['name']=dataset
@@ -121,18 +99,7 @@ def get(logger=None,args=None):
         tokenizer = ABSATokenizer.from_pretrained(args.bert_model)
         train_examples = processor.get_train_examples(dataset)
 
-        if 'XuSemEval' in dataset and args.down_sample_ratio != 1: #if down sampling
-            print('down sampling')
-            train_examples = down_sampling(train_examples,args.down_sample_ratio,args)
-
-
-        # if args.train_data_size > 0:
-        #     random.Random(args.seed).shuffle(train_examples) #more robust
-        #     train_examples = train_examples[:args.train_data_size] #TODO: remove
-        #
-
         num_train_steps = int(math.ceil(len(train_examples) / args.train_batch_size)) * args.num_train_epochs
-        # num_train_steps = int(len(train_examples) / args.train_batch_size) * args.num_train_epochs
 
         train_features = data_utils.convert_examples_to_features(
             train_examples, label_list, args.max_seq_length, tokenizer, "asc")

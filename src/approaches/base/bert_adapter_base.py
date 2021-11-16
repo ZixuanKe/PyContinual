@@ -37,12 +37,6 @@ class Appr(object):
         random.seed(args.seed)
         np.random.seed(args.seed)
         torch.manual_seed(args.seed)
-        args.output_dir = args.output_dir.replace(
-            '[PT_OUTPUT_DIR]', os.getenv('PT_OUTPUT_DIR', ''))
-        os.makedirs(args.output_dir, exist_ok=True)
-        json.dump(args.__dict__, open(os.path.join(
-            args.output_dir, 'opt.json'), 'w'), sort_keys=True, indent=2)
-
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.n_gpu = torch.cuda.device_count()
 
@@ -60,32 +54,32 @@ class Appr(object):
         self.taskcla = taskcla
         self.logger = logger
 
-        if 'ewc' in args.approach:
+        if args.baseline=='ewc':
             self.lamb=args.lamb                      # Grid search = [500,1000,2000,5000,10000,20000,50000]; best was 5000
             self.fisher=None
 
         #OWM ============
-        if 'owm' in args.approach:
+        if args.baseline=='owm':
             dtype = torch.cuda.FloatTensor  # run on GPU
             self.P1 = torch.autograd.Variable(torch.eye(self.args.bert_adapter_size).type(dtype), volatile=True) #inference only
             self.P2 = torch.autograd.Variable(torch.eye(self.args.bert_adapter_size).type(dtype), volatile=True)
 
         #UCL ======================
-        if 'ucl' in args.approach:
+        if  args.baseline=='ucl':
             self.saved = 0
             self.beta = args.beta
             self.model=model
             self.model_old = deepcopy(self.model)
 
-        if 'one' in args.approach:
+        if args.baseline=='one':
             self.model=model
             self.initial_model=deepcopy(model)
 
-        if 'der' in args.approach:
+        if  args.baseline=='derpp':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             self.mse = torch.nn.MSELoss()
 
-        if 'gem' in args.approach:
+        if  args.baseline=='gem':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             # Allocate temporary synaptic memory
             self.grad_dims = []
@@ -95,7 +89,7 @@ class Appr(object):
             self.grads_cs = []
             self.grads_da = torch.zeros(np.sum(self.grad_dims)).to(self.device)
 
-        if 'a-gem' in args.approach:
+        if  args.baseline=='a-gem':
             self.buffer = Buffer(self.args.buffer_size, self.device)
             self.grad_dims = []
             for param in self.model.parameters():
@@ -103,7 +97,7 @@ class Appr(object):
             self.grad_xy = torch.Tensor(np.sum(self.grad_dims)).to(self.device)
             self.grad_er = torch.Tensor(np.sum(self.grad_dims)).to(self.device)
 
-        if 'l2' in args.approach:
+        if  args.baseline=='l2':
             self.lamb=self.args.lamb                      # Grid search = [500,1000,2000,5000,10000,20000,50000]; best was 5000
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self.params = {n: p for n, p in self.model.named_parameters() if p.requires_grad}  # For convenience
