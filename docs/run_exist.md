@@ -2,6 +2,8 @@
 
 
 
+
+
   
   
   
@@ -30,6 +32,7 @@ We have implemented **40+** baselines, you can simply run them using the corresp
 	 - Depends on baselines, you may be prompted to install more packages. You can simply install them by running `conda install <pkg>`
 	  
 ### General Command Format  
+```python
     python  run.py \  
 		--bert_model 'bert-base-uncased' \  
 		--backbone bert_adapter \  
@@ -40,10 +43,10 @@ We have implemented **40+** baselines, you can simply run them using the corresp
 		--scenario til_classification \
 		--idrandom 0  \
 		--use_predefine_args
-		
+```	
 Above shows a typical command to run PyContinual. Some of the arguments are easy to understand, We further explain some PyContinual arguments:  
   - `idrandom`: which random sequence you want to use  
-  - `use_reset_param`: we have provide some  pre-define argument in `./load_base_args.py`. This argument will tell the program to use the pre-define argument
+  - `use_predefine_args`: we have provided some  pre-defined arguments in `./load_base_args.py`. This argument will tell the program to use the pre-defined arguments
  - `task` There are 4 supported taskls so far  
    - `asc`: aspect ssentiment classification  
    - `dsc`: document sentiemnt classification  
@@ -62,7 +65,7 @@ Above shows a typical command to run PyContinual. Some of the arguments are easy
   
 
   To run B-CL:    
-
+```python
     python  run.py \  
 		--bert_model 'bert-base-uncased' \   
 		--backbone bert_adapter \  
@@ -73,9 +76,9 @@ Above shows a typical command to run PyContinual. Some of the arguments are easy
 		--scenario til_classification \  
 		--idrandom 0  \
 		--use_predefine_args
-
+```
  To run CLASSIC:    
-
+```python
     python  run.py \  
 		--bert_model 'bert-base-uncased' \   
 		--backbone bert_adapter \  
@@ -86,9 +89,9 @@ Above shows a typical command to run PyContinual. Some of the arguments are easy
 		--scenario dil_classification \  
 		--idrandom 0  \
 		--use_predefine_args
- 
+ ```
   To run CTR:    
-
+```python
     python  run.py \  
 		--bert_model 'bert-base-uncased' \   
 		--backbone bert_adapter \  
@@ -99,7 +102,7 @@ Above shows a typical command to run PyContinual. Some of the arguments are easy
 		--scenario til_classification \  
 		--idrandom 0  \
 		--use_predefine_args
-
+ ```
   
 #### Examples Results:  
 The example results will be saved in `./res/til_classification/asc/` and `./res/dil_classification/asc/`

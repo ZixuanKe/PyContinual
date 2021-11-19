@@ -103,13 +103,6 @@ class Appr(ApprBase):
             if vals is not None:
                 self.mask_back[n]=1-vals
 
-        #after training, set tsv, testing can make use of more similar tasks
-        if self.args.reset_tsv:
-            for pre_t in range(t):
-                for layer_id in range(self.model.config.num_hidden_layers):
-                    self.model.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[pre_t][t] = 1
-                    self.model.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[pre_t][t] = 1
-
 
         return
 

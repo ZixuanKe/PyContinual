@@ -12,7 +12,35 @@
 
 
 
+
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
+
+
+
+## Easy to Use
+
+You can sumply change the `baseline`, `backbone` and `task`, and then ready to go.
+Here is an example:
+```python
+	python run.py \  
+	--bert_model 'bert-base-uncased' \  
+	--backbone bert_adapter \ #or other backbones (bert, w2v...)  
+	--baseline ctr \  #or other avilable baselines (classic, ewc...)
+	--task asc \  #or other avilable task/dataset (dsc, newsgroup...)
+	--eval_batch_size 128 \  
+	--train_batch_size 32 \  
+	--scenario til_classification \  #or other avilable scenario (dil_classification...)
+	--idrandom 0  \ #which random sequence to use
+	--use_predefine_args #use pre-defined arguments
+```
+
+## Easy to Extend
+
+You only need to write  your own `./dataloader`, `./networks` and `./approaches`. You are ready to [go](https://github.com/ZixuanKe/PyContinual/blob/main/docs/run_own.md)!
+
+
+## Introduction
+Recently, continual learning approaches have drawn more and more attention. This repo contains pytorch implementation of a set of (improved) SoTA methods using the same training and evaluation pipeline.
 
 This repository contains the code for the following papers:
 *  [Achieving Forgetting Prevention and Knowledge Transfer in Continual Learning](https://proceedings.neurips.cc/paper/2021/hash/bcd0049c35799cdf57d06eaf2eb3cff6-Abstract.html), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), Nianzu Ma, [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/), NeurIPS 2021
@@ -20,10 +48,8 @@ This repository contains the code for the following papers:
 *  [Adapting BERT for Continual Learning of a Sequence of Aspect Sentiment Classification Tasks](https://www.aclweb.org/anthology/2021.naacl-main.378.pdf), Zixuan Ke, [Hu Xu](https://howardhsu.github.io/) and [Bing Liu](https://www.cs.uic.edu/~liub/), NAACL 2021
 * [Continual Learning of a Mixed Sequence of Similar and Dissimilar Tasks](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/) and [Xingchang Huang](https://people.mpi-inf.mpg.de/~xhuang/), NeurIPS 2020 (if you only care about this model, you can also check [CAT](https://github.com/ZixuanKe/CAT))
 * [Continual Learning with Knowledge Transfer for Sentiment Classification](https://www.cs.uic.edu/~liub/publications/ECML-PKDD-2020.pdf), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), [Hao Wang](https://cshaowang.github.io/) and [Lei Shu](https://leishu02.github.io/), ECML-PKDD 2020 (if you only care about this model, you can also check [LifelongSentClass](https://github.com/ZixuanKe/LifelongSentClass))
-* **40+** baselines and variants (and keeps "continually" growing!)
+* **[40+](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)** baselines and variants (and keeps "continually" growing!)
 
-## Introduction
-Recently, continual learning approaches have drawn more and more attention. This repo contains pytorch implementation of a set of (improved) SoTA methods using the same training and evaluation pipeline.
 
 ## Features
 * **Datasets**: It currently supports **Language Datasets** (Document/Sentence/Aspect Sentiment Classification, Natural Language Inference, Topic Classification) and **Image Datasets** (CelebA, CIFAR10, CIFAR100, FashionMNIST, F-EMNIST, MNIST, VLCS)

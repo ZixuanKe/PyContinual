@@ -101,8 +101,6 @@ def asc_config(parser):
     parser.add_argument('--transfer_layer_all', action='store_true')
     parser.add_argument('--task_mask', action='store_true')
     parser.add_argument('--no_tsv_mask', action='store_true')
-    parser.add_argument('--unblock_attention', action='store_true')
-    parser.add_argument('--reset_tsv', action='store_true')
     parser.add_argument('--tsv_mask_type',type=str)
     parser.add_argument('--weight_decay',type=float,default=0.0)
     parser.add_argument('--gradient_accumulation',type=float,default=2)
