@@ -151,7 +151,6 @@ class Net(torch.nn.Module):
         return None
 
     def get_view_for_tsv(self,n,t):
-        #TODO: Cautions! Don't preint, this is used in forward transfer
         for layer_id in range(self.config.num_hidden_layers):
             if n=='bert.encoder.layer.'+str(layer_id)+'.output.adapter_capsule_mask.capsule_net.tsv_capsules.route_weights':
                 # print('not none')
@@ -190,43 +189,42 @@ class Net(torch.nn.Module):
                         # print('not none')
                         return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
 
-            if not self.args.unblock_attention:
-                if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.route_weights':
+            if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.route_weights':
+                # print('not none')
+                return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t].data.view(1,-1,1,1)
+
+            for c_t in range(self.num_task):
+                if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc1.'+str(c_t)+'.weight':
+                    # print('attention semantic_capsules fc1')
+                    return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc1.'+str(c_t)+'.bias':
+                    return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+
+                elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc2.'+str(c_t)+'.weight':
                     # print('not none')
-                    return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t].data.view(1,-1,1,1)
+                    return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc2.'+str(c_t)+'.bias':
+                    return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
 
-                for c_t in range(self.num_task):
-                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc1.'+str(c_t)+'.weight':
-                        # print('attention semantic_capsules fc1')
-                        return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                    elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc1.'+str(c_t)+'.bias':
-                        return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.fc_aspect.'+str(c_t)+'.weight':
+                    # print('attention semantic_capsules fc1')
+                    return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.fc_aspect.'+str(c_t)+'.bias':
+                    return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
 
-                    elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc2.'+str(c_t)+'.weight':
-                        # print('not none')
-                        return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                    elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.semantic_capsules.fc2.'+str(c_t)+'.bias':
-                        return self.bert.encoder.layer[layer_id].attention.output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
 
-                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.fc_aspect.'+str(c_t)+'.weight':
-                        # print('attention semantic_capsules fc1')
+                for m_t in range(self.num_kernel):
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs3.'+str(c_t)+'.'+str(m_t)+'.weight':
                         return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                    elif n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.fc_aspect.'+str(c_t)+'.bias':
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs3.'+str(c_t)+'.'+str(m_t)+'.bias':
                         return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-
-
-                    for m_t in range(self.num_kernel):
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs3.'+str(c_t)+'.'+str(m_t)+'.weight':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs3.'+str(c_t)+'.'+str(m_t)+'.bias':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs2.'+str(c_t)+'.'+str(m_t)+'.weight':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs2.'+str(c_t)+'.'+str(m_t)+'.bias':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs1.'+str(c_t)+'.'+str(m_t)+'.weight':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
-                        if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs1.'+str(c_t)+'.'+str(m_t)+'.bias':
-                            return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs2.'+str(c_t)+'.'+str(m_t)+'.weight':
+                        return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs2.'+str(c_t)+'.'+str(m_t)+'.bias':
+                        return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs1.'+str(c_t)+'.'+str(m_t)+'.weight':
+                        return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
+                    if n=='bert.encoder.layer.'+str(layer_id)+'.attention.output.adapter_capsule_mask.capsule_net.transfer_capsules.convs1.'+str(c_t)+'.'+str(m_t)+'.bias':
+                        return self.bert.encoder.layer[layer_id].output.adapter_capsule_mask.capsule_net.tsv_capsules.tsv[t][c_t].data
 
         return 1 #if no condition is satified

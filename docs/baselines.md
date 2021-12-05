@@ -35,21 +35,21 @@ We introduce all supported baselines and backbones.
 
 | Paper| Baseline| Backbone| task|
 |--|--| -- | -- |
-| NCL| ncl | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, imge|
-| ONE | one | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, imge|
-| MTL | mtl | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, imge|
-| [L2](https://arxiv.org/abs/1612.00796) | l2 | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, imge|
-| [A-GEM](https://arxiv.org/abs/1812.00420) | a-gem | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, imge|
+| NCL| ncl | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
+| ONE | one | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
+| MTL | mtl | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
+| [L2](https://arxiv.org/abs/1612.00796) | l2 | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
+| [A-GEM](https://arxiv.org/abs/1812.00420) | a-gem | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
 | [DER++](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html) | derpp | bert/bert_frozen/bert adapter/w2v_as/w2v/cnn/mlp | language|
 | [KAN](https://www.cs.uic.edu/~liub/publications/ECML-PKDD-2020.pdf) | kan | bert_frozen/w2v_as/w2v | language|
-| [SRK](https://www.cs.uic.edu/~swang/papers/lv_shared_knowledge_sentiment.pdf) | srk | bert_frozen/w2v_as/w2v | language, imge|
-| [EWC](https://arxiv.org/abs/1612.00796) | ewc | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp |language, imge|
-| [HAL](https://arxiv.org/abs/2002.08165) | hal | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, imge|
-| [UCL](https://papers.nips.cc/paper/2019/hash/2c3ddf4bf13852db711dd1901fb517fa-Abstract.html) | ucl | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, imge|
-| [OWM](https://www.nature.com/articles/s42256-019-0080-x) | owm | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, imge|
-| [ACL](https://arxiv.org/abs/2003.09553) | acl| cnn/mlp | imge|
-| [HAT](http://proceedings.mlr.press/v80/serra18a.html)| hat | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, imge|
-| [CAT](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf)| cat | bert/bert_frozen/w2v_as/w2v/cnn/mlp| language, imge|
+| [SRK](https://www.cs.uic.edu/~swang/papers/lv_shared_knowledge_sentiment.pdf) | srk | bert_frozen/w2v_as/w2v | language, image|
+| [EWC](https://arxiv.org/abs/1612.00796) | ewc | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp |language, image|
+| [HAL](https://arxiv.org/abs/2002.08165) | hal | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
+| [UCL](https://papers.nips.cc/paper/2019/hash/2c3ddf4bf13852db711dd1901fb517fa-Abstract.html) | ucl | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
+| [OWM](https://www.nature.com/articles/s42256-019-0080-x) | owm | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
+| [ACL](https://arxiv.org/abs/2003.09553) | acl| cnn/mlp | image|
+| [HAT](http://proceedings.mlr.press/v80/serra18a.html)| hat | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
+| [CAT](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf)| cat | bert/bert_frozen/w2v_as/w2v/cnn/mlp| language, image|
 | [B-CL](https://aclanthology.org/2021.naacl-main.378.pdf)| b-cl|bert_adapter | language|
 | [CLASSIC](https://aclanthology.org/2021.emnlp-main.550/) | classic| bert_adapter | language|
 | [CTR](https://aclanthology.org/2021.emnlp-main.550/) | ctr| bert_adapter | language|

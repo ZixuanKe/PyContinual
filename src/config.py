@@ -116,7 +116,6 @@ def asc_config(parser):
     parser.add_argument('--exp', type=str, default='')
     parser.add_argument('--optimizer', type=str, default='sgd')
     parser.add_argument('--model_checkpoint', type=str, default='')
-    parser.add_argument('--free_previous_fc',action='store_true')
     parser.add_argument('--l2_norm',action='store_true')
     parser.add_argument('--larger_as_share',action='store_true')
     parser.add_argument('--mask_head',action='store_true')
