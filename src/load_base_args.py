@@ -12,11 +12,14 @@ def load():
         args.bingdomains_num_train_epochs = 30
         args.bingdomains_num_train_epochs_multiplier = 3
         args.nepochs = 100
+        args.nclasses = 3
+
 
     if args.task == 'dsc': #document sentiment classication
         args.ntasks = 10
         args.num_train_epochs = 20
         args.nepochs = 100
+        args.nclasses = 2
 
 
     if args.task == 'newsgroup': #aspect sentiment classication
@@ -24,6 +27,7 @@ def load():
         args.class_per_task = 2
         args.num_train_epochs = 10
         args.nepochs = 100
+        args.nclasses = 2
 
 
 
@@ -164,6 +168,11 @@ def load():
         args.adapter_size = True
 
     # ============= additional for DIL ==================
+
+    if not args.ent_id and not args.last_id and 'dil' in args.scenario:
+        args.last_id = True # you have to chose one way to decide the ID
+
+
     if args.ent_id:
         args.resume_model = True
         args.eval_only = True
