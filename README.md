@@ -13,6 +13,7 @@
 
 
 
+
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 
@@ -37,6 +38,16 @@ Here is an example:
 ## Easy to Extend
 
 You only need to write  your own `./dataloader`, `./networks` and `./approaches`. You are ready to [go](https://github.com/ZixuanKe/PyContinual/blob/main/docs/run_own.md)!
+
+## Performance
+
+<p align="center">
+    <br>
+    <a href="https://github.com/ZixuanKe/PyContinual">
+        <img src="https://github.com/ZixuanKe/PyContinual/blob/main/docs/benchmarks.png" width="500"/>
+    </a>    
+    <br>
+<p>
 
 
 ## Introduction

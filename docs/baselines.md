@@ -40,7 +40,7 @@ We introduce all supported baselines and backbones.
 | MTL | mtl | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
 | [L2](https://arxiv.org/abs/1612.00796) | l2 | bert/bert_frozen/bert_adapter/w2v_as/w2v | language, image|
 | [A-GEM](https://arxiv.org/abs/1812.00420) | a-gem | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language, image|
-| [DER++](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html) | derpp | bert/bert_frozen/bert adapter/w2v_as/w2v/cnn/mlp | language|
+| [DER++](https://papers.nips.cc/paper/2020/hash/b704ea2c39778f07c617f6b7ce480e9e-Abstract.html) | derpp | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp | language|
 | [KAN](https://www.cs.uic.edu/~liub/publications/ECML-PKDD-2020.pdf) | kan | bert_frozen/w2v_as/w2v | language|
 | [SRK](https://www.cs.uic.edu/~swang/papers/lv_shared_knowledge_sentiment.pdf) | srk | bert_frozen/w2v_as/w2v | language, image|
 | [EWC](https://arxiv.org/abs/1612.00796) | ewc | bert/bert_frozen/bert_adapter/w2v_as/w2v/cnn/mlp |language, image|

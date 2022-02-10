@@ -13,10 +13,19 @@ from typing import Callable, Dict, Optional
 import torch
 
 def asc_config(parser):
-    parser.add_argument('--backbone',default='',type=str,required=False,help='(default=%(default)s)')
-    parser.add_argument('--baseline',default='',type=str,required=True,help='(default=%(default)s)')
-    parser.add_argument('--task',default='',type=str,required=True,help='(default=%(default)s)')
-    parser.add_argument('--scenario',default='',type=str,required=True,help='(default=%(default)s)')
+    parser.add_argument('--backbone',default='',type=str,required=True,
+                        help='chose the backbone model',
+                        choices=['bert','bert_frozen','bert_adapter','w2v_as','w2v','cnn','mlp'])
+
+    parser.add_argument('--baseline',default='',type=str,required=True,
+                        help='chose the baseline model',
+                        choices=['ncl','one','mtl','l2','a-gem','derpp','kan','srk','ewc','hal','ucl','owm','acl','hat','cat','b-cl','classic','ctr'])
+    parser.add_argument('--task',default='',type=str,required=True,help='what datasets',
+                        choices=['asc','dsc','ssc','nli','newsgroup','celeba','femnist','vlcs','cifar10','mnist','fashionmnist','cifar100'])
+    parser.add_argument('--scenario',default='',type=str,required=True,help='what senario it will be',
+                        choices=['til_classification ', 'dil_classification']
+                        )
+    
     parser.add_argument('--output',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--note',type=str,default='',help='(default=%(default)d)')
     parser.add_argument('--nclasses',default=0,type=int,required=False,help='(default=%(default)d)')
@@ -105,9 +114,9 @@ def asc_config(parser):
     parser.add_argument('--gradient_accumulation',type=float,default=2)
     parser.add_argument('--eval_steps',type=float,default=200)
     parser.add_argument('--logging_steps',type=float,default=200)
-    parser.add_argument('--xusemeval_num_train_epochs', type=int, help='Initializer bounds for embeddings', default=0)
-    parser.add_argument('--bingdomains_num_train_epochs', type=int, help='Initializer bounds for embeddings', default=0)
-    parser.add_argument('--bingdomains_num_train_epochs_multiplier', type=int, help='Initializer bounds for embeddings', default=0)
+    parser.add_argument('--xusemeval_num_train_epochs', type=int, default=0)
+    parser.add_argument('--bingdomains_num_train_epochs', type=int, default=0)
+    parser.add_argument('--bingdomains_num_train_epochs_multiplier', default=0)
     parser.add_argument('--w2v_hidden_size', type=int, default=300)
     parser.add_argument('--capsule_nhid', type=int, default=2000)
     parser.add_argument('--capsule_nhid_output', type=int, default=768)

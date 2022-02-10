@@ -63,11 +63,9 @@ _TOKENIZER_FOR_DOC = "BertTokenizer"
 # above copy from trasnformers == 4.10.2
 # We add adapters in each layers
 # we add attribute in conig, see configuration_utils.py.py
-# we add argument in apply_chunking_to_forward, for some layers, see modeling_utils.py
 # the code for adapter is in networks.adapters
-
-
 # Change log ------------------------------------
+
 import sys
 from transformers.models.bert.modeling_bert import BertModel,BertSelfOutput,BertSelfOutput,BertEncoder,BertOutput,BertLayer,BertAttention
 sys.path.append("./networks/base/")
