@@ -23,7 +23,7 @@ def asc_config(parser):
     parser.add_argument('--task',default='',type=str,required=True,help='what datasets',
                         choices=['asc','dsc','ssc','nli','newsgroup','celeba','femnist','vlcs','cifar10','mnist','fashionmnist','cifar100'])
     parser.add_argument('--scenario',default='',type=str,required=True,help='what senario it will be',
-                        choices=['til_classification ', 'dil_classification']
+                        choices=['til_classification', 'dil_classification']
                         )
     
     parser.add_argument('--output',default='',type=str,required=False,help='(default=%(default)s)')
