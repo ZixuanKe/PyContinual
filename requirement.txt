@@ -1,0 +1,21 @@
+conda create -n pyc python=3.7
+conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install nltk
+python
+    import nltk
+    nltk.download('punkt')
+    exit()
+conda install jsonlines
+conda install tensorboardX
+conda install tensorboard
+pip install rouge_score
+pip install accelerate
+pip install datasets==2.3.2
+pip install transformers==4.17.0
+pip install adapter-transformers==3.0.1
+pip install pytorch_lightning
+pip install evaluate
+pip install scikit-learn
+pip install seqeval
+pip install dill ==0.3.4
+pip install multiprocess==0.70.12.2

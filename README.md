@@ -18,7 +18,7 @@ We are still working on immigrate v0.0.0 to v1.0.0. At this moment, there are st
 * At this moment, it supports only the Task-incremental scenario (task ID is given in both training and testing)
 
 ## Architecture
-`./dataloader`: contained dataloader for different data
+`./dataloader`: contained dataloader for different data  
 `./approaches`: code for training  
 `./networks`: code for network architecture  
 `./sequence`: different sequences  
@@ -26,6 +26,11 @@ We are still working on immigrate v0.0.0 to v1.0.0. At this moment, there are st
 `./tools`: code for pre-processing the data and conduct analysis (e.g. forgetting rate, heatmap...)
 
 ## Setup
+
+See ``requirement.txt`` for the required package. Please make sure the you installed the correct version.
+
+## Example
+
 
 Here is an example:
 ```python
@@ -73,7 +78,7 @@ Above shows a typical command to run PyContinual v1.0.0 Some of the arguments ar
     - supsup_ggg
   - `base_dir`: you need to make sure your dataset is in this directory 
     
-If you have questions about what papers the baseline systems refer to or how to download the data. Please check the [v0.0.0 README](https://github.com/ZixuanKe/PyContinual/v0.0.0)
+If you have questions about what papers the baseline systems refer to or how to download the data. Please check the [README in Main Branch](https://github.com/ZixuanKe/PyContinual/v0.0.0)
 
 ## Contact
 
