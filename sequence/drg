@@ -1,0 +1,10 @@
+MWOZ_taxi	MWOZ_hotel	MWOZ_attraction	MWOZ_train	MWOZ_restaurant
+MWOZ_train	MWOZ_attraction	MWOZ_taxi	MWOZ_hotel	MWOZ_restaurant
+MWOZ_attraction	MWOZ_hotel	MWOZ_restaurant	MWOZ_taxi	MWOZ_train
+MWOZ_taxi	MWOZ_attraction	MWOZ_hotel	MWOZ_restaurant	MWOZ_train
+MWOZ_restaurant	MWOZ_attraction	MWOZ_train	MWOZ_taxi	MWOZ_hotel
+MWOZ_hotel	MWOZ_restaurant	MWOZ_attraction	MWOZ_train	MWOZ_taxi
+MWOZ_train	MWOZ_attraction	MWOZ_hotel	MWOZ_taxi	MWOZ_restaurant
+MWOZ_attraction	MWOZ_restaurant	MWOZ_taxi	MWOZ_hotel	MWOZ_train
+MWOZ_attraction	MWOZ_restaurant	MWOZ_train	MWOZ_taxi	MWOZ_hotel
+MWOZ_restaurant	MWOZ_hotel	MWOZ_train	MWOZ_attraction	MWOZ_taxi

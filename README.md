@@ -1,130 +1,84 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# PyContinual (An Easy and Extendible Framework for Continual Learning)
-
-
-## Easy to Use
-
-You can sumply change the `baseline`, `backbone` and `task`, and then ready to go.
-Here is an example:
-```python
-	python run.py \  
-	--bert_model 'bert-base-uncased' \  
-	--backbone bert_adapter \ #or other backbones (bert, w2v...)  
-	--baseline ctr \  #or other avilable baselines (classic, ewc...)
-	--task asc \  #or other avilable task/dataset (dsc, newsgroup...)
-	--eval_batch_size 128 \  
-	--train_batch_size 32 \  
-	--scenario til_classification \  #or other avilable scenario (dil_classification...)
-	--idrandom 0  \ #which random sequence to use
-	--use_predefine_args #use pre-defined arguments
-```
-
-## Easy to Extend
-
-You only need to write  your own `./dataloader`, `./networks` and `./approaches`. You are ready to [go](https://github.com/ZixuanKe/PyContinual/blob/main/docs/run_own.md)!
-
-## Performance
-
-<p align="center">
-    <br>
-    <a href="https://github.com/ZixuanKe/PyContinual">
-        <img src="https://github.com/ZixuanKe/PyContinual/blob/main/docs/benchmarks.png" width="500"/>
-    </a>    
-    <br>
-<p>
-
+# PyContinual v1.0.0
 
 ## Introduction
-Recently, continual learning approaches have drawn more and more attention. This repo contains pytorch implementation of a set of (improved) SoTA methods using the same training and evaluation pipeline.
+We are developing v1.0.0, it improves v0.0 in the followings aspects:
 
-This repository contains the code for the following papers:
-*  [Achieving Forgetting Prevention and Knowledge Transfer in Continual Learning](https://proceedings.neurips.cc/paper/2021/hash/bcd0049c35799cdf57d06eaf2eb3cff6-Abstract.html), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), Nianzu Ma, [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/), NeurIPS 2021
-*  [CLASSIC: Continual and Contrastive Learning of Aspect Sentiment Classification Tasks](https://aclanthology.org/2021.emnlp-main.550/), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/), EMNLP 2021
-*  [Adapting BERT for Continual Learning of a Sequence of Aspect Sentiment Classification Tasks](https://www.aclweb.org/anthology/2021.naacl-main.378.pdf), Zixuan Ke, [Hu Xu](https://howardhsu.github.io/) and [Bing Liu](https://www.cs.uic.edu/~liub/), NAACL 2021
-* [Continual Learning of a Mixed Sequence of Similar and Dissimilar Tasks](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/) and [Xingchang Huang](https://people.mpi-inf.mpg.de/~xhuang/), NeurIPS 2020 (if you only care about this model, you can also check [CAT](https://github.com/ZixuanKe/CAT))
-* [Continual Learning with Knowledge Transfer for Sentiment Classification](https://www.cs.uic.edu/~liub/publications/ECML-PKDD-2020.pdf), Zixuan Ke, [Bing Liu](https://www.cs.uic.edu/~liub/), [Hao Wang](https://cshaowang.github.io/) and [Lei Shu](https://leishu02.github.io/), ECML-PKDD 2020 (if you only care about this model, you can also check [LifelongSentClass](https://github.com/ZixuanKe/LifelongSentClass))
-* **[40+](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)** baselines and variants (and keeps "continually" growing!)
+* Improve the readability. We removed most of the unnecessary and duplicated code. We use some more recent packages (Accelerate, Adapter-transformer, Transformer) to help achieve this.  
+* We focused on **Transformer-based** CL method. More type of NLP tasks are supported. It currently supports **classification** (ASC, CCD), **extraction** (NER) and **generation** (summerization, dialogue response)
+* More underlying LMs are supported. It currently supports **BERT, RoBERTa and BART**
+* More recent NLP techniques are supported. It currently supports **adapter and (soft-)prompt**.
+* More efficient. Fp16 and multi-node training are supported
 
+## TODOs
+We are still working on immigrate v0.0.0 to v1.0.0. At this moment, there are still some TODOs **(PR welcomed)**
 
-## Features
-* **Datasets**: It currently supports **Language Datasets** (Document/Sentence/Aspect Sentiment Classification, Natural Language Inference, Topic Classification) and **Image Datasets** (CelebA, CIFAR10, CIFAR100, FashionMNIST, F-EMNIST, MNIST, VLCS)
-* **Scenarios**: It currently supports **Task Incremental Learning** and **Domain Incremental Learning**
-* **Training Modes**: It currently supports single-GPU. You can also change it to multi-node distributed training and the mixed precision training.
+* At this moment, it supports only the following baselines: NCL, ONE, EWC, HAT, B-CL, CTR, CAT, [SupSup](https://arxiv.org/abs/2006.14769), [L2P](https://arxiv.org/abs/2112.08654) 
+* At this moment, it supports only the Task-incremental scenario (task ID is given in both training and testing)
 
 ## Architecture
-`./res`: all results saved in this folder.    
-`./dat`: processed data    
-`./data`: raw data  
-`./dataloader`: contained dataloader for different data  
+`./dataloader`: contained dataloader for different data
 `./approaches`: code for training  
 `./networks`: code for network architecture  
-`./data_seq`:  some reference sequences (e.g. asc_random)  
-`./tools`: code for preparing the data
+`./sequence`: different sequences  
+`./utils`: common utils and model-specific utils. The default hyper-parameters are hard-coded in utils  
+`./tools`: code for pre-processing the data and conduct analysis (e.g. forgetting rate, heatmap...)
 
 ## Setup
-* If you want to run the existing systems, please see [run_exist.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_exist.md)
-* If you want to expand the framework with your own model, please see  [run_own.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/run_own.md)
-* If you want to see the full list of baselines and variants, please see [baselines.md](https://github.com/ZixuanKe/PyContinual/blob/master/docs/baselines.md)
 
+Here is an example:
+```python
 
-## Reference
-If using this code, parts of it, or developments from it, please consider cite the references bellow.
+seed=(2021 111 222 333 444 555 666 777 888 999)
 
-	@inproceedings{ke2021achieve,
-	  title={Achieving Forgetting Prevention and Knowledge Transfer in Continual Learning},
-	  author={Ke, Zixuan and Liu, Bing and Ma, Nianzu and Xu, Hu, and Lei Shu},
-	  booktitle={NeurIPS},
-	  year={2021}
-	}
-	
-	@inproceedings{ke2021contrast,
-	  title={CLASSIC: Continual and Contrastive Learning of Aspect Sentiment Classification Tasks},
-	  author={Ke, Zixuan and Liu, Bing and Xu, Hu, and Lei Shu},
-	  booktitle={EMNLP},
-	  year={2021}
-	}
+for round in 0;
+do
+  for idrandom in 0;
+  do
+    for ft_task in $(seq 0 19);
+      do
+        CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node 4 --use_env --master_port 12942 finetune.py \
+        --ft_task ${ft_task} \
+        --idrandom ${idrandom} \
+        --ntasks 19 \
+        --baseline 'adapter_bcl_asc_bert' \
+        --seed ${seed[$round]} \
+        --per_device_eval_batch_size 32 \
+        --sequence_file 'asc' \
+        --per_device_train_batch_size 32 \
+        --base_model_name_or_path 'bert-base-uncased' \
+        --warmup_ratio 0.5 \
+        --patient 50 \
+        --fp16 \
+        --max_source_length 128 \
+        --pad_to_max_length \
+        --base_dir <your dataset directory>
+      done
+  done
+done
 
-	@inproceedings{ke2021adapting,
-	  title={Adapting BERT for Continual Learning of a Sequence of Aspect Sentiment Classification Tasks},
-	  author={Ke, Zixuan and Xu, Hu and Liu, Bing},
-	  booktitle={Proceedings of the 2021 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies},
-	  pages={4746--4755},
-	  year={2021}
-	}
+```
 
-    @inproceedings{ke2020continualmixed,
-    author= {Ke, Zixuan and Liu, Bing and Huang, Xingchang},
-    title= {Continual Learning of a Mixed Sequence of Similar and Dissimilar Tasks},
-    booktitle = {Advances in Neural Information Processing Systems},
-    volume={33},
-    year = {2020}}
+Above shows a typical command to run PyContinual v1.0.0 Some of the arguments are easy to understand, We further explain some PyContinual arguments:
 
-	@inproceedings{ke2020continual,
-	author= {Zixuan Ke and Bing Liu and Hao Wang and Lei Shu},
-	title= {Continual Learning with Knowledge Transfer for Sentiment Classification},
-	booktitle = {ECML-PKDD},
-	year = {2020}}
-
+  - `idrandom`: which random sequence you want to use  
+  - `round`: which seeds you want to use  
+  - `base_model_name_or_path` BERT, RoBERTa and BART are supported so far
+  - `sequence_file`: see `./sequence` for the supported tasks
+  - `baseline`: a string that contains the baseline names, including 
+    - one, ncl, prompt_one, prompt_ncl, adapter_one, adapter_ncl, mtl, comb, ewc
+    - adapter_bcl, adapter_ctr, adapter_hat, adapter_cat
+    - l2p
+    - supsup_ggg
+  - `base_dir`: you need to make sure your dataset is in this directory 
     
+If you have questions about what papers the baseline systems refer to or how to download the data. Please check the [v0.0.0 README](https://github.com/ZixuanKe/PyContinual/v0.0.0)
+
 ## Contact
 
 
-Please drop an email to [Zixuan Ke](mailto:zke4@uic.edu), [Xingchang Huang](mailto:huangxch3@gmail.com) or [Nianzu Ma](mailto:jingyima005@gmail.com) if you have any questions regarding to the code. We thank [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/) for their valuable comments and opinioins.
+Please drop an email to [Zixuan Ke](mailto:zke4@uic.edu), [Yijia Shao](mailto:shaoyj@pku.edu.cn), [Haowei Lin](mailto:linhaowei@pku.edu.cn), or [Xingchang Huang](mailto:huangxch3@gmail.com) if you have any questions regarding to the code. We thank [Bing Liu](https://www.cs.uic.edu/~liub/), [Hu Xu](https://howardhsu.github.io/) and [Lei Shu](https://leishu02.github.io/) for their valuable comments and opinioins.
 
 
 

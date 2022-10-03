@@ -1,0 +1,11 @@
+nyt	stack	emails  reddit	icsi    ami
+nyt	stack	reddit	emails	ami	icsi
+emails	ami	reddit	nyt	stack	icsi
+stack	nyt	reddit	emails	ami	icsi
+reddit	icsi	nyt	ami	stack	emails
+reddit	ami	stack	emails	nyt	icsi
+nyt	icsi	stack	emails	ami	reddit
+reddit	stack	icsi	nyt	ami	emails
+reddit	ami	stack	emails	nyt	icsi
+stack	ami	icsi	reddit	nyt	emails
+ami	nyt	stack	icsi	reddit	emails

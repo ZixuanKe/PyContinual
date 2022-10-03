@@ -1,0 +1,12 @@
+conll2003	wikigold	btc	re3d	gum
+btc	conll2003	wikigold	re3d	gum
+wikigold	re3d	conll2003	gum	btc
+btc	conll2003	wikigold	gum	re3d
+wikigold	re3d	gum	conll2003	btc
+gum	btc	re3d	conll2003	wikigold
+conll2003	re3d	wikigold	gum	btc
+gum	btc	wikigold	conll2003	re3d
+conll2003	gum	re3d	btc	wikigold
+gum	re3d	wikigold	btc	conll2003
+gum	re3d	btc	wikigold	conll2003
+

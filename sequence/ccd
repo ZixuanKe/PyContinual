@@ -1,0 +1,11 @@
+yelp	amazon  yahoo	dbpedia	agnews
+yahoo	yelp	amazon	dbpedia	agnews
+amazon	yelp	yahoo	agnews	dbpedia
+yahoo	dbpedia	yelp	agnews	amazon
+yahoo	yelp	dbpedia	amazon	agnews
+amazon	dbpedia	yelp	yahoo	agnews
+dbpedia	amazon	yahoo	yelp	agnews
+amazon	agnews	yahoo	yelp	dbpedia
+agnews	dbpedia	yahoo	amazon	yelp
+dbpedia	amazon	yahoo	yelp	agnews
+dbpedia	agnews	yelp	amazon	yahoo
