@@ -16,6 +16,9 @@
 
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
+## News
+
+**[10/03/2022]** If you are interested in more Transformer-based baselines, more NLP tasks (extraction and generation), more LMs (RoBERTa, BART) and more efficient training (fp16, multi-node). Check our [developing branch](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
 
 ## Easy to Use
 
