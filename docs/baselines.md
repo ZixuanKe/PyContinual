@@ -23,7 +23,7 @@ We introduce all supported baselines and backbones.
 	 - `bert_frozen`: use BERT (frozen) as backbone netowok (a fronzen BERT + a CNN/GRU classification network on top)
 	 - `bert_adapter`: use BERT (adapter) as backbone network
 	 - `w2v`: use W2V as backbone network (W2V embedding + a CNN classification network on top)
-	 - `w2v_as`: use W2V as backbone network (W2V embedding which includes both review and the aspect + a CNN classificatio0n network on top)
+	 - `w2v_as (specific for Aspect Sentiment Classification)`: use W2V as backbone network (W2V embedding which includes both review and the aspect + a CNN classification network on top)
 	 - `cnn`: use CNN as backbone network (for image dataset only)
 	 - `mlp`: use MLP as backbone network (for image dataset only)
   - `task`: the supported task for the corresponding baseline (argument `--task`)
@@ -52,7 +52,7 @@ We introduce all supported baselines and backbones.
 | [CAT](https://proceedings.neurips.cc/paper/2020/file/d7488039246a405baf6a7cbc3613a56f-Paper.pdf)| cat | bert/bert_frozen/w2v_as/w2v/cnn/mlp| language, image|
 | [B-CL](https://aclanthology.org/2021.naacl-main.378.pdf)| b-cl|bert_adapter | language|
 | [CLASSIC](https://aclanthology.org/2021.emnlp-main.550/) | classic| bert_adapter | language|
-| [CTR](https://aclanthology.org/2021.emnlp-main.550/) | ctr| bert_adapter | language|
+| [CTR](https://proceedings.neurips.cc/paper/2021/hash/bcd0049c35799cdf57d06eaf2eb3cff6-Abstract.html) | ctr| bert_adapter | language|
 
 
 

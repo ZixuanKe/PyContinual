@@ -17,7 +17,6 @@
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 
-
 ## Easy to Use
 
 You can sumply change the `baseline`, `backbone` and `task`, and then ready to go.
@@ -68,13 +67,13 @@ This repository contains the code for the following papers:
 * **Training Modes**: It currently supports single-GPU. You can also change it to multi-node distributed training and the mixed precision training.
 
 ## Architecture
-`./res`: all results saved in this folder.  
-`./dat`: processed data  
-`./data`: raw data
-`./dataloader`: contained dataloader for different data
+`./res`: all results saved in this folder.    
+`./dat`: processed data    
+`./data`: raw data  
+`./dataloader`: contained dataloader for different data  
 `./approaches`: code for training  
 `./networks`: code for network architecture  
-`./data_seq`:  some reference sequences (e.g. asc_random)
+`./data_seq`:  some reference sequences (e.g. asc_random)  
 `./tools`: code for preparing the data
 
 ## Setup

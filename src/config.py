@@ -20,28 +20,39 @@ def asc_config(parser):
     parser.add_argument('--baseline',default='',type=str,required=True,
                         help='chose the baseline model',
                         choices=['ncl','one','mtl','l2','a-gem','derpp','kan','srk','ewc','hal','ucl','owm','acl','hat','cat','b-cl','classic','ctr'])
+
     parser.add_argument('--task',default='',type=str,required=True,help='what datasets',
                         choices=['asc','dsc','ssc','nli','newsgroup','celeba','femnist','vlcs','cifar10','mnist','fashionmnist','cifar100'])
+
     parser.add_argument('--scenario',default='',type=str,required=True,help='what senario it will be',
-                        choices=['til_classification ', 'dil_classification']
-                        )
-    
+                        choices=['til_classification', 'dil_classification'])
+
+    parser.add_argument('--ntasks',default=10,type=int,required=False,help='how many tasks in total')
+    parser.add_argument('--nclasses',default=0,type=int,required=False,help='how many classes in total')
+    parser.add_argument('--idrandom',default=0,type=int,required=False,help='which random sequence to use')
+    parser.add_argument('--use_predefine_args', action='store_true',help='whether to use the pre-defined arguments in the paper')
+    parser.add_argument('--first_id', action='store_true',help='use first ID as the ID for testing, only useful in DIL setting')
+    parser.add_argument('--last_id', action='store_true',help='use last ID as the ID for testing, only useful in DIL setting')
+    parser.add_argument('--ent_id', action='store_true',help='use entropy to decide ID, only useful in DIL setting')
+    parser.add_argument('--nepochs', type=int, default=100,help='the largest epochs to run')
+    parser.add_argument('--sbatch',default=64,type=int,required=False,help='batch size')
+    parser.add_argument('--class_per_task', type=int, default=2,help='how many classes per task. Useful when prepare the partition-based data, e.g. 20Newsgroup can be partitioned into differnet number of tasks based on this argument')
+
+    parser.add_argument('--thres_cosh',default=50,type=int,required=False,help="baseline HAT's hyper-parameters")
+    parser.add_argument('--thres_emb',default=6,type=int,required=False,help="baseline HAT's hyper-parameters")
+
+
     parser.add_argument('--output',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--note',type=str,default='',help='(default=%(default)d)')
-    parser.add_argument('--nclasses',default=0,type=int,required=False,help='(default=%(default)d)')
-    parser.add_argument('--ntasks',default=10,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--ntasks_unseen',default=10,type=int,required=False,help='(default=%(default)d)')
-    parser.add_argument('--idrandom',default=0,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--lr_patience',default=5,type=int,required=False,help='(default=%(default)f)')
     parser.add_argument('--lr',default=0.05,type=float,required=False,help='(default=%(default)f)')
     parser.add_argument('--lr_factor',default=3,type=float,required=False,help='(default=%(default)f)')
     parser.add_argument('--lr_gap',default=0.01,type=float,required=False,help='(default=%(default)f)')
     parser.add_argument('--lr_min',default=1e-4,type=float,required=False,help='(default=%(default)f)')
-    parser.add_argument('--thres_cosh',default=50,type=int,required=False,help='(default=%(default)d)')
-    parser.add_argument('--thres_emb',default=6,type=int,required=False,help='(default=%(default)d)')
+
     parser.add_argument('--clipgrad',default=10000,type=float,required=False,help='(default=%(default)f)')
     parser.add_argument('--lamb',default=5000,type=float,required=False,help='(default=%(default)f)')
-    parser.add_argument('--sbatch',default=64,type=int,required=False,help='(default=%(default)f)')
     parser.add_argument('--output_dir',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--model_path',default='',type=str,required=False,help='(default=%(default)s)')
     parser.add_argument('--bert_mask_adapter_size',default=2000,type=int,required=False,help='(default=%(default)d)')
@@ -51,7 +62,6 @@ def asc_config(parser):
     parser.add_argument('--num_semantic_cap',default=3,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--mid_size',default=100,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--experiment_id',type=int,default=0)
-    parser.add_argument('--use_predefine_args', action='store_true')
     parser.add_argument('--temp', type=float, default=1,
                         help='temperature for loss function')
     parser.add_argument('--base_temp', type=float, default=1,
@@ -79,7 +89,6 @@ def asc_config(parser):
     parser.add_argument('--resume_from_task',type=int,default=0)
     parser.add_argument('--resume_from_file',type=str,default='')
     parser.add_argument('--sample_gate_in_ouput', action='store_true')
-    parser.add_argument('--two_stage', action='store_true')
     parser.add_argument('--use_pooled_rep', action='store_true')
     parser.add_argument('--pooled_rep_contrast', action='store_true')
     parser.add_argument('--task_gate_in_ouput', action='store_true')
@@ -89,9 +98,6 @@ def asc_config(parser):
     parser.add_argument('--save_each_step', action='store_true')
     parser.add_argument('--eval_each_step', action='store_true')
     parser.add_argument('--known_id', action='store_true')
-    parser.add_argument('--first_id', action='store_true')
-    parser.add_argument('--last_id', action='store_true',help='use last ID as the ID for testing, useful in DIL setting')
-    parser.add_argument('--ent_id', action='store_true',help='use entropy to decide ID, useful in DIL setting')
     parser.add_argument('--entropy_loss', action='store_true')
     parser.add_argument('--share_conv', action='store_true')
     parser.add_argument('--distributed', action='store_true')
@@ -134,10 +140,8 @@ def asc_config(parser):
     parser.add_argument('--transfer_route',action='store_true')
     parser.add_argument('--no_capsule',action='store_true')
     parser.add_argument('--momentum', action='store_true')
-    parser.add_argument('--nepochs', type=int, default=100)
     parser.add_argument('--srk_train_batch_size', type=int, default=32)
     parser.add_argument('--dataset_name', type=str)
-    parser.add_argument('--class_per_task', type=int, default=2)
     parser.add_argument('--use_imp', action='store_true')
     parser.add_argument('--use_gelu', action='store_true')
     parser.add_argument('--eval_only', action='store_true')
