@@ -17,6 +17,7 @@
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 ## News
+**[10/11/2022]** If you are interested in continual learning on pre-training/post-training of language models. Check our [latest paper](https://arxiv.org/abs/2210.05549) in EMNLP 2022 and the accompany [code](https://github.com/UIC-Liu-Lab/CPT)!
 
 **[10/03/2022]** If you are interested in more Transformer-based baselines, more NLP tasks (extraction and generation), more LMs (RoBERTa, BART) and more efficient training (fp16, multi-node). Check our [developing branch](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
 
