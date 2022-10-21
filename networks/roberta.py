@@ -1004,7 +1004,8 @@ class MyRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, RobertaPre
         output_hidden_states=None,
         return_dict=None,
         task=None,
-        my_loss = None
+        my_loss = None,
+        nsp_labels=None,
     ):
 
         r"""
@@ -1160,7 +1161,7 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
         inputs_embeds=None,
         labels=None,
         output_attentions=None,
-        output_hidden_states=None,
+        output_hidden_states=True,
         return_dict=None,
         my_loss=None,
         task=None

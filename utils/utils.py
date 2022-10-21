@@ -9,11 +9,11 @@ import torch.nn.functional as F
 from copy import deepcopy
 from torch import nn
 from networks.baselines.supsup import MultitaskMaskLinear
-
+from networks.baselines.dytox import MyRobertaForSequenceClassificationDyTox
 from networks.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
 from networks.roberta import MyRobertaForSequenceClassification,MyRobertaForTokenClassification
 from networks.bert import MyBertForSequenceClassification,MyBertForTokenClassification
-
+from networks.baselines.ldbr import MyRobertaForSequenceClassificationLDBR
 import evaluate
 from datasets import load_dataset, load_metric
 from networks.model import MyModel
@@ -779,6 +779,26 @@ def _lookfor_model_prompt(taskcla,args, config):
 
     return model
 
+def _lookfor_model_dytox(taskcla,args, config):
+
+    if args.task_name in args.ner_datasets:
+        MODEL = None
+    elif args.task_name in args.classification:
+        MODEL = MyRobertaForSequenceClassificationDyTox
+    elif args.task_name in args.generation:
+        MODEL = None
+
+    model = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+
+    model = MyModel(model, args=args)
+
+    return model
 
 def _lookfor_model_ewc(taskcla,args, config):
 
@@ -810,6 +830,31 @@ def _lookfor_model_ewc(taskcla,args, config):
 
     return model
 
+def _lookfor_model_ldbr(taskcla, args, config):
+
+    if args.task_name in args.classification:
+        MODEL = MyRobertaForSequenceClassificationLDBR
+
+    model = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+    teacher = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+
+    for param in teacher.parameters():  # nothing is trainable in teacher
+        param.requires_grad = False
+    model = MyModel(model, teacher, args=args)
+
+    return model
 
 def _lookfor_model_others(taskcla,args, config):
 
@@ -861,6 +906,14 @@ def lookfor_model_finetune(taskcla,args, config):
             model = _lookfor_model_prompt(taskcla,args, config)
             return model
 
+        elif 'ldbr' in args.baseline:
+            model = _lookfor_model_ldbr(taskcla, args, config)
+            return model
+        
+        elif 'dytox' in args.baseline:
+            model = _lookfor_model_dytox(taskcla, args, config)
+            return model
+        
         else:
             model = _lookfor_model_others(taskcla,args, config)
             return model

@@ -1745,7 +1745,8 @@ class MyBartForSequenceClassification(ModelWithHeadsAdaptersMixin, BartPretraine
         output_hidden_states=None,
         return_dict=None,
         task=None,
-        my_loss = None
+        my_loss = None,
+        nsp_labels=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -2017,7 +2018,8 @@ class MyBartForTokenClassification(ModelWithHeadsAdaptersMixin, BartPretrainedMo
         output_hidden_states=None,
         return_dict=None,
         my_loss=None,
-        task=None
+        task=None,
+        nsp_labels=None,
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

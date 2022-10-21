@@ -61,6 +61,7 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
         loss = outputs.loss
         logits = outputs.logits
+        hidden_states = outputs.hidden_states
 
 
     if 'ewc' in my_model.args.baseline and my_model.training and self_fisher is not None:
@@ -74,4 +75,4 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
         loss += hat.loss_compute(masks, mask_pre, my_model.args)
 
-    return loss, logits
+    return loss, logits, hidden_states

@@ -222,7 +222,6 @@ def parse_args():
     parser.add_argument("--base_dir", default='/hdd_3/zke4',type=str, help="task id")
     parser.add_argument("--eval_checkpoint",action="store_true")
     parser.add_argument("--no_repeat_ngram_size", type=int, help="task id")
-
     parser.add_argument(
         "--val_max_target_length",
         type=int,
@@ -324,8 +323,20 @@ def parse_args():
         action="store_true",
         help="Indication whether entity level metrics are to be returner.",
     )
-
-
+    parser.add_argument(
+        '--buffer_size_per_dataset',
+        type=int,
+        default=50,
+        help="buffer size for each dataset",
+    )
+    parser.add_argument(
+        '--replay_freq',
+        type=int,
+        default=10,
+        help='replay frequency. Every 10 step we do replay once.'
+    )
+    parser.add_argument('--replay_beta', default=0.03, type=float, help='(default=%(default)f)')
+    parser.add_argument('--replay_alpha', default=0.01, type=float, help='(default=%(default)f)')
     args = parser.parse_args()
 
     return args

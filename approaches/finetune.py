@@ -32,6 +32,7 @@ class Appr(object):
         self.config = config
         self.tanh = torch.nn.Tanh()
         self.sigmoid = torch.nn.Sigmoid()
+        self.mse = torch.nn.MSELoss()
 
         utils.lookfor_baseline_variable(self,args)
 
@@ -245,6 +246,20 @@ class Appr(object):
                                 outputs = model(batch)
 
                             loss = outputs.loss
+
+                            # replay here
+                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline) \
+                                and not (self.args.buffer is None or self.args.buffer.is_empty()) \
+                                and step % self.args.replay_freq == 0:
+                                
+                                replay_batch = self.args.buffer.get_datadict(size=batch['input_ids'].shape[0])
+                                replay_batch['cls_labels'] = replay_batch['labels']
+                                replay_outputs = model(replay_batch)
+                                
+                                loss += replay_outputs.loss * self.args.replay_beta
+                                if 'derpp' in self.args.baseline:
+                                    loss += self.mse(replay_outputs.hidden_states[-1], replay_batch['logits']) * self.args.replay_alpha
+                            
                             # We keep track of the loss at each epoch
                             if self.args.with_tracking:
                                 total_loss += loss.detach().float()
@@ -275,7 +290,28 @@ class Appr(object):
                                         p.grad.data *= utils.get_view_for_tsv(n, model_ori, self.args)  # open for general
                                     # elif 'adapter_cat' in self.args.baseline: #TODO: to open the mask, utils.mask already consder it
                                     #     p.grad.data *= utils.get_similar_mask(self.args.similarity, model, accelerator, self.args)
+                            
+                            if 'agem' in self.args.baseline:
+                                model_ori = accelerator.unwrap_model(model)
+                                from networks.baselines import agem
+                                if not (self.args.buffer is None or self.args.buffer.is_empty()):
+                                    agem.store_grad(model_ori.model.parameters, self.args.grad_xy, self.args.grad_dims)
+                                    model_ori.model.zero_grad()
 
+                                    replay_batch = self.args.buffer.get_datadict(self.args.buffer_size_per_dataset)
+                                    # TODO: consider data loader if needed for efficient
+                                    replay_batch['cls_labels'] = replay_batch['labels']
+                                    outputs = model_ori(replay_batch)
+                                    accelerator.backward(outputs.loss) # also make it cannot deal with task with different #classes, as DREPP
+
+                                    agem.store_grad(model_ori.model.parameters, self.args.grad_er, self.args.grad_dims)
+                                    #
+                                    dot_prod = torch.dot(self.args.grad_xy, self.args.grad_er)
+                                    if dot_prod.item() < 0:
+                                        g_tilde = agem.project(gxy=self.args.grad_xy, ger=self.args.grad_er)
+                                        agem.overwrite_grad(model_ori.model.parameters, g_tilde, self.args.grad_dims)
+                                    else:
+                                        agem.overwrite_grad(model_ori.model.parameters, self.args.grad_xy, self.args.grad_dims)
 
 
                             if 'adapter_hat' in self.args.baseline   \
@@ -363,7 +399,7 @@ class Appr(object):
                 # after training ***********************************************************************************************
 
 
-        self = after_finetune.compute(self,model,train_pool_loader, self_fisher, mask_pre, accelerator)
+        self = after_finetune.compute(self, model, train_pool_loader, self_fisher, mask_pre, accelerator)
 
         accelerator.wait_for_everyone()
         unwrapped_model = accelerator.unwrap_model(model)
@@ -452,6 +488,8 @@ class Appr(object):
                         for out in outp:
                             pred.append(out.max(1)[1])  # out has different size
                         pred = torch.stack(pred).squeeze()
+                    elif 'ldbr' in self.args.baseline:
+                        pred = torch.stack(outp[0]).squeeze().max(1)[1]
                     else:
                         pred = outp.max(1)[1]
 
@@ -501,7 +539,6 @@ class Appr(object):
 
 
                 else: # summerization
-
                     model(batch)
 
                     if 'prompt' in self.args.baseline or 'l2p' in self.args.baseline:

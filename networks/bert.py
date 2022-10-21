@@ -1387,7 +1387,8 @@ class MyBertForSequenceClassification(ModelWithHeadsAdaptersMixin, BertPreTraine
         output_hidden_states=None,
         return_dict=None,
         task=None,
-        my_loss=None
+        my_loss=None,
+        nsp_labels=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
