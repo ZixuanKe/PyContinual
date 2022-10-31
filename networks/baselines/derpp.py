@@ -38,7 +38,7 @@ def derpp_compute(train_dataloader_prune, model, buffer, args):
                 buffer.add_data(
                     input_ids=inputs['input_ids'][:left], 
                     labels=inputs['labels'][:left], 
-                    logits=outputs.hidden_states[-1][:left], 
+                    logits=outputs.encoder_hidden_states[-1][:left], 
                     attention_mask=inputs['attention_mask'][:left],
                     task=inputs['task'][:left]
                 )

@@ -31,12 +31,15 @@ def compute(self,model,train_pool_loader, self_fisher, mask_pre, accelerator):
         self.args.tokenizer.save_pretrained(self.args.output_dir)
         if 'adapter' in self.args.baseline:
             unwrapped_model.model.save_adapter(self.args.output_dir, 'adapter')
-        if 'prompt' in self.args.baseline or 'l2p' in self.args.baseline:
+        if 'l2p' in self.args.baseline:
             torch.save(unwrapped_model.model.keys, os.path.join(self.args.output_dir,  'keys'))
             torch.save(unwrapped_model.model.prompt_pool, os.path.join(self.args.output_dir, 'prompt_pool'))
+        if 'dualprompt' in self.args.baseline:
+            torch.save(unwrapped_model.model.e_prompts, os.path.join(self.args.output_dir, 'e_prompts'))
+            torch.save(unwrapped_model.model.g_prompt, os.path.join(self.args.output_dir, 'g_prompt'))
+            torch.save(unwrapped_model.model.keys, os.path.join(self.args.output_dir, 'keys'))
         if 'adapter_cat' in self.args.baseline:
             torch.save(self.similarity.similarities, os.path.join(self.args.output_dir,  'similarities'))
-
 
     accelerator.wait_for_everyone() # after training
     if 'ewc' in self.args.baseline:

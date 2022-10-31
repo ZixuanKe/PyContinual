@@ -106,7 +106,6 @@ class Appr(object):
             }
         ]
 
-
         optimizer = AdamW(optimizer_grouped_parameters)
 
         # Scheduler and math around the number of training steps.
@@ -253,7 +252,8 @@ class Appr(object):
                                 and step % self.args.replay_freq == 0:
                                 
                                 replay_batch = self.args.buffer.get_datadict(size=batch['input_ids'].shape[0])
-                                replay_batch['cls_labels'] = replay_batch['labels']
+                                if self.args.task_name in self.args.classification:
+                                    replay_batch['cls_labels'] = replay_batch['labels']
                                 replay_outputs = model(replay_batch)
                                 
                                 loss += replay_outputs.loss * self.args.replay_beta
@@ -392,7 +392,6 @@ class Appr(object):
                     if (self.args.task_name in self.args.generation or self.args.task_name in self.args.ner_datasets):
                         utils.set_model_(model, best_model)
 
-
                 except KeyboardInterrupt:  # even if contro-C, I still want to save model
                     return
 
@@ -481,6 +480,8 @@ class Appr(object):
                     outputs = model(batch)
                     real_b = batch["input_ids"].size(0)
                     loss = outputs.loss
+                    if isinstance(outputs.logits, list):
+                        outputs.logits = torch.cat(outputs.logits)
                     outp = outputs.logits
 
                     if 'mtl' in self.args.baseline or 'comb' in self.args.baseline:
@@ -515,6 +516,8 @@ class Appr(object):
 
                 elif self.args.task_name in self.args.ner_datasets:
                     outputs = model(batch)
+                    if isinstance(outputs.logits, list):
+                        outputs.logits = torch.cat(outputs.logits)
                     predictions = outputs.logits.argmax(dim=-1)
                     labels = batch["cls_labels"]
                     if not self.args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
@@ -530,7 +533,7 @@ class Appr(object):
                             samples_seen += labels_gathered.shape[0]
 
                     # unwrapped_model = accelerator.unwrap_model(model)
-                    preds, refs = self.get_labels(predictions_gathered, labels_gathered,eval_t)
+                    preds, refs = self.get_labels(predictions_gathered, labels_gathered, eval_t)
 
                     metric.add_batch(
                         predictions=preds,
@@ -539,8 +542,8 @@ class Appr(object):
 
 
                 else: # summerization
-                    model(batch)
 
+                    model(batch) # use for supsup
                     if 'prompt' in self.args.baseline or 'l2p' in self.args.baseline:
                         inputs_embeds,attention_mask = tune_model.get_prompt_extended_input_exclude_label(batch["input_ids"],batch["attention_mask"],batch["labels"])
 

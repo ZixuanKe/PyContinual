@@ -23,7 +23,6 @@ def run_forward(input_ids,attention_mask,task,cls_labels,my_model,self_fisher,ma
                     supsup.set_model_specific_task(my_model, task)  # in case nothing is used
 
         else:
-
             if my_model.args.is_reference:
                 outputs = my_model.teacher(input_ids=input_ids, labels=cls_labels, attention_mask=attention_mask, output_hidden_states=True, task=task, nsp_labels=nsp_labels)
             else:

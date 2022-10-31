@@ -29,9 +29,10 @@ class RobertaClassificationHeadDyTox(nn.Module):
         return x
 
 class DyToxTAB(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, args):
         super().__init__()
-        
+        self.args = args
+
         self.num_attention_heads = config.num_attention_heads
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
@@ -39,6 +40,10 @@ class DyToxTAB(nn.Module):
         self.query = nn.Linear(config.hidden_size, self.all_head_size)
         self.key = nn.Linear(config.hidden_size, self.all_head_size)
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
+
+        self.layernorm1 = nn.LayerNorm([self.args.max_length + 1, config.hidden_size])
+        self.layernorm2 = nn.LayerNorm([self.all_head_size])
+        self.MLP = nn.Linear(self.all_head_size, self.all_head_size)
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
@@ -53,14 +58,14 @@ class DyToxTAB(nn.Module):
         '''
             x: [batch_size, seq_len, hidden_size]
             theta: [batch_size, hidden_size] 
-            z: [batch_Size, seq_len+1, hidden_size]
+            z: [batch_size, seq_len+1, hidden_size]
             query_layer: [batch_size, 1, head_num, head_size]
             key, value_layer: [batch_size, seq_len+1, head_num, head_size]
             atten_probs: [batch_size, 1, head_num, head_num]
-            context_layer: [batch_size, 1, head_num, head_size] -> [batch_size, 1, all_head_size]
+            context_layer: [batch_size, 1, head_num, head_size] -> [batch_size, all_head_size]
         '''
         theta = theta.unsqueeze(1)
-        z = torch.cat([x, theta], dim=1)
+        z = self.layernorm1(torch.cat([x, theta], dim=1))
 
         query_layer = self.transpose_for_scores(self.query(theta))
         key_layer = self.transpose_for_scores(self.key(z))  
@@ -78,8 +83,10 @@ class DyToxTAB(nn.Module):
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(new_context_layer_shape)
 
-        outputs = context_layer
-        return outputs.squeeze(1)
+        outputs = context_layer.squeeze(1)
+        outputs = self.MLP(outputs)
+
+        return outputs
 
 class MyRobertaForSequenceClassificationDyTox(MyRobertaForSequenceClassification):
     def __init__(self, config, taskcla, args, **kwargs):
@@ -89,7 +96,7 @@ class MyRobertaForSequenceClassificationDyTox(MyRobertaForSequenceClassification
         self.args = args
         ## self.roberta is SAB, self.classifiers is clf
         self.task_embedder = nn.Embedding(args.ntasks, config.hidden_size)
-        self.TAB = DyToxTAB(config)
+        self.TAB = DyToxTAB(config, args)
         self.classifiers = nn.ModuleList() # overwrite !!
         for _, n in taskcla:
             config.num_labels = n

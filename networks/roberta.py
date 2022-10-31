@@ -1049,7 +1049,8 @@ class MyRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, RobertaPre
                 loss += cur_loss
                 logits.append(logit)
 
-            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline:
+            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'agem' not in self.args.baseline and 'derpp' not in self.args.baseline:
+                # TODO: all replay methods should not calculate this.
                 logits = torch.cat(logits)
 
             loss = loss / len(task)
@@ -1057,9 +1058,10 @@ class MyRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, RobertaPre
         else:
             logits = []
             for t in range(self.args.ntasks):
+                # [B, hidden] -> [B, labels]
                 logit = self.classifiers[t](sequence_output)
                 logits.append(logit)
-            logits = torch.cat(logits,dim=1)
+            logits = torch.cat(logits,dim=-1)
 
 
         #
@@ -1133,13 +1135,8 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
         self.classifiers = nn.ModuleList()
         for task, n in taskcla:
             config.num_labels = n
-
             classifier = nn.Linear(config.hidden_size, config.num_labels)
-            self.model._init_weights(classifier.dense)
-            self.model._init_weights(classifier.out_proj)
-
             self.classifiers.append(classifier)
-
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -1164,7 +1161,8 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
         output_hidden_states=True,
         return_dict=None,
         my_loss=None,
-        task=None
+        task=None,
+        nsp_labels=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size, sequence_length)`, *optional*):
@@ -1184,7 +1182,8 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
             return_dict=return_dict,
         )
 
-        sequence_output = outputs[0]
+        # adapt prompt to token classification !!
+        sequence_output = outputs[0][...,-self.args.max_length:,:]
 
         sequence_output = self.dropout(sequence_output)
 
@@ -1203,7 +1202,8 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
                 loss += cur_loss
                 logits.append(logit)
 
-            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline:
+            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'derpp' not in self.args.baseline and 'agem' not in self.args.baseline:
+                # TODO: all replay methods should not calculate this.
                 logits = torch.cat(logits)
 
             loss = loss / len(task)
@@ -1213,7 +1213,7 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
             for t in range(self.args.ntasks):
                 logit = self.classifiers[t](sequence_output)
                 logits.append(logit)
-            logits = torch.cat(logits,dim=1)
+            logits = torch.cat(logits,dim=-1)
 
 
         # loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
