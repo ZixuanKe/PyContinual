@@ -919,7 +919,7 @@ def _lookfor_model_others(taskcla,args, config):
 
     return model
 
-def lookfor_model_finetune(taskcla,args, config):
+def lookfor_model_finetune(taskcla, args, config):
 
     if args.model_name_or_path:  # only do electra
         if 'adapter' in args.baseline:

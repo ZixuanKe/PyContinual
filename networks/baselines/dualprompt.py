@@ -29,7 +29,7 @@ class DualPromptRobertaLayer(MyRobertaLayer):
 
         return hidden_states
 
-    def _extend_attention_mask(self, attention_mask):
+    def _extend_attention_mask(self, attention_mask, prompt_embeds):
         """
         Extends attention_mask to match the input_ids's shape.
         """
@@ -38,14 +38,15 @@ class DualPromptRobertaLayer(MyRobertaLayer):
             attention_mask = attention_mask.unsqueeze(0)
 
         n_batches = attention_mask.shape[0]
+        n_tokens = prompt_embeds.shape[1]
         return torch.cat(
             [
                 torch.full(
-                    (n_batches, self.Lp * self.N), 1).to(
-                    attention_mask.device).long(),
+                    (n_batches, 1, 1, n_tokens), 1).to(
+                    attention_mask.device),
                 attention_mask
             ],
-            dim=1,
+            dim=3,
         )
 
     def forward(
@@ -566,6 +567,14 @@ class DualPromptRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, Ro
 
 class DualPromptRobertaForTokenClassification(DualPromptRobertaForSequenceClassification):
 
+    def __init__(self, config, taskcla, args, tokenizer=None, Lg=5, Le=20, start_g=1, end_g=2, start_e=3, end_e=5):
+        super().__init__(config, taskcla, args, tokenizer, Lg, Le, start_g, end_g, start_e, end_e)
+        self.classifiers = nn.ModuleList()
+        for task, n in taskcla:
+            config.num_labels = n
+            classifier = nn.Linear(config.hidden_size, config.num_labels)
+            self.classifiers.append(classifier)
+        
     def forward(
         self,
         input_ids=None,
