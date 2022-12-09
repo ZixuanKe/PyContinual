@@ -20,9 +20,11 @@ Fine-tuning a 🤗 Transformers model on summarization.
 
 
 #TODO: config + CL + tensorboard
-#TODO: please consider FSDP: https://huggingface.co/docs/accelerate/fsdp
+# TODO: please consider FSDP: https://huggingface.co/docs/accelerate/fsdp
 
 
+from accelerate import Accelerator, DistributedType, DistributedDataParallelKwargs
+from approaches.finetune import Appr
 import argparse
 import json
 import logging
@@ -39,6 +41,7 @@ from datasets import load_dataset, load_metric
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 import datasets
+from datasets import Value
 import transformers
 from accelerate import Accelerator
 # from accelerate.logging import get_logger
@@ -62,10 +65,11 @@ import config
 from utils import utils
 from dataloader.data import get_dataset
 from datasets import Dataset, DatasetDict, concatenate_datasets
-
+from networks.baselines import ldbr
 
 logger = logging.getLogger(__name__)
-require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
+require_version("datasets>=1.8.0",
+                "To fix: pip install -r examples/pytorch/summarization/requirements.txt")
 
 # You should update this to your particular problem to have better documentation of `model_type`
 MODEL_CONFIG_CLASSES = list(MODEL_MAPPING.keys())
@@ -85,20 +89,15 @@ except (LookupError, OSError):
 args = config.parse_args()
 args = utils.prepare_sequence_finetune(args)
 
-from approaches.finetune import Appr
-from accelerate import Accelerator, DistributedType, DistributedDataParallelKwargs
-
 
 # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
 # If we're using tracking, we also need to initialize it here and it will by default pick up all supported trackers
 # in the environment
 
 ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
-accelerator = Accelerator(mixed_precision=args.mixed_precision,fp16=args.fp16, kwargs_handlers=[ddp_kwargs])
+accelerator = Accelerator(mixed_precision=args.mixed_precision,
+                          fp16=args.fp16, kwargs_handlers=[ddp_kwargs])
 
-# accelerator = (
-#     Accelerator(log_with=args.report_to, logging_dir=args.output_dir) if args.with_tracking else Accelerator()
-# )
 if args.source_prefix is None and args.model_name_or_path in [
     "t5-small",
     "t5-base",
@@ -152,17 +151,21 @@ else:
     logger.warning("You are instantiating a new config instance from scratch.")
 
 if args.tokenizer_name:
-    tokenizer = AutoTokenizer.from_pretrained(args.tokenizer_name, use_fast=not args.use_slow_tokenizer)
-elif args.base_model_name_or_path: # for training only
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.tokenizer_name, use_fast=not args.use_slow_tokenizer)
+elif args.base_model_name_or_path:  # for training only
 
     add_space_tokenizer = AutoTokenizer.from_pretrained(args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer,
-                                              add_prefix_space=True)
-    normal_tokenizer = AutoTokenizer.from_pretrained(args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer)
+                                                        add_prefix_space=True)
+    normal_tokenizer = AutoTokenizer.from_pretrained(
+        args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer)
 
     if args.task_name in args.ner_datasets:
-        tokenizer = AutoTokenizer.from_pretrained(args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer, add_prefix_space=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer, add_prefix_space=True)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer)
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.base_model_name_or_path, use_fast=not args.use_slow_tokenizer)
 
 else:
     raise ValueError(
@@ -175,9 +178,8 @@ args.add_space_tokenizer = add_space_tokenizer
 args.normal_tokenizer = normal_tokenizer
 
 
-datasets,taskcla = get_dataset(accelerator=accelerator, logger=logger, args=args)
-# print('datasets: ',datasets)
-model = utils.lookfor_model_finetune(taskcla,args,config)
+datasets, taskcla = get_dataset(accelerator=accelerator, logger=logger, args=args)
+model = utils.lookfor_model_finetune(taskcla, args, config)
 
 model.model.resize_token_embeddings(len(args.tokenizer))
 if model.teacher is not None:
@@ -186,9 +188,9 @@ if model.teacher is not None:
 args.config = utils.deepcopy(config)
 
 
-
 if 'bart' in args.model_name_or_path and config.decoder_start_token_id is None:
-    raise ValueError("Make sure that `config.decoder_start_token_id` is correctly defined")
+    raise ValueError(
+        "Make sure that `config.decoder_start_token_id` is correctly defined")
 
 logger.info('==> Preparing data..')
 
@@ -201,18 +203,19 @@ if 'mtl' in args.baseline or 'comb' in args.baseline:
             dev_dataset = datasets[t]['dev']
 
         else:
-            train_dataset = concatenate_datasets([train_dataset, datasets[t]['train']])
-            dev_dataset = concatenate_datasets([dev_dataset, datasets[t]['dev']])
+            train_dataset = concatenate_datasets(
+                [train_dataset, datasets[t]['train']])
+            dev_dataset = concatenate_datasets(
+                [dev_dataset, datasets[t]['dev']])
 
 else:
     # TODO: we may want to save some previous data
     train_dataset = datasets[args.ft_task]['train']
     dev_dataset = datasets[args.ft_task]['dev']
 
-##
-
-
-
+if 'ldbr' in args.baseline:
+    train_dataset = ldbr.process_dataset(train_dataset, args.tokenizer)
+    dev_dataset = ldbr.process_dataset(dev_dataset, args.tokenizer)
 
 def preprocess_function(examples):
     # Temporarily set max_target_length for training.
@@ -221,16 +224,18 @@ def preprocess_function(examples):
     inputs = examples[text_column]
     targets = examples[summary_column]
     task_id = examples['task']
-    if 'cls_labels' in examples: cls_labels = examples['cls_labels']
-
+    if 'cls_labels' in examples:
+        cls_labels = examples['cls_labels']
 
     inputs = [prefix + inp for inp in inputs]
 
-    model_inputs = args.tokenizer(inputs, max_length=args.max_source_length, padding=padding, truncation=True)
+    model_inputs = args.tokenizer(
+        inputs, max_length=args.max_source_length, padding=padding, truncation=True)
 
     # Setup the tokenizer for targets
     with args.tokenizer.as_target_tokenizer():
-        labels = args.tokenizer(targets, max_length=args.max_target_length, padding=padding, truncation=True)
+        labels = args.tokenizer(
+            targets, max_length=args.max_target_length, padding=padding, truncation=True)
 
     # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
     # padding in the loss.
@@ -239,10 +244,10 @@ def preprocess_function(examples):
             [(l if l != args.tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
         ]
 
-
     model_inputs["labels"] = labels["input_ids"]
     model_inputs['task'] = task_id
-    if 'cls_labels' in examples: model_inputs['cls_labels'] = cls_labels
+    if 'cls_labels' in examples:
+        model_inputs['cls_labels'] = cls_labels
 
     return model_inputs
 
@@ -276,13 +281,15 @@ def tokenize_and_align_labels(examples):
                 if ('eval_t' not in locals() and 'eval_t' not in globals()) or args.ft_task == 0 or args.ft_task == eval_t:
                     label_ids.append(label_to_id[label[word_idx]])
                 else:
-                    label_ids.append(label_to_id_dict[args.task_name][label[word_idx]])
+                    label_ids.append(
+                        label_to_id_dict[args.task_name][label[word_idx]])
 
             # For the other tokens in a word, we set the label to either the current label or -100, depending on
             # the label_all_tokens flag.
             else:
                 if args.label_all_tokens:
-                    label_ids.append(b_to_i_label[label_to_id[label[word_idx]]])
+                    label_ids.append(
+                        b_to_i_label[label_to_id[label[word_idx]]])
                 else:
                     label_ids.append(-100)
             previous_word_idx = word_idx
@@ -290,7 +297,6 @@ def tokenize_and_align_labels(examples):
         labels.append(label_ids)
     tokenized_inputs["cls_labels"] = labels
     tokenized_inputs["labels"] = labels
-
 
     task_id = examples['task']
 
@@ -309,74 +315,66 @@ prefix = args.source_prefix if args.source_prefix is not None else ""
 
 text_column = 'source'
 summary_column = 'target'
-column_names = [text_column,summary_column]
-
-
-
+column_names = [text_column, summary_column]
 
 
 label_list_dict = \
-{
-    'conll2003': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
-    'wnut2017': ['O', 'B-location', 'I-location', 'B-corporation', 'I-corporation', 'B-person', 'I-person',
-                    'B-product', 'I-product', 'B-creative-work', 'I-creative-work',
-                    'B-group', 'I-group'],
-    'wikigold': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
-    'ontonote': ['O', 'B-PERSON', 'I-PERSON', 'B-NORP', 'I-NORP', 'B-FAC', 'I-FAC',
-                        'B-ORG', 'I-ORG', 'B-GPE', 'I-GPE',
-                        'B-LOC', 'I-LOC', 'B-PRODUCT', 'I-PRODUCT',
-                        'B-EVENT', 'I-EVENT','B-WORK_OF_ART','I-WORK_OF_ART',
-                        'B-LAW', 'I-LAW', 'B-LANGUAGE', 'I-LANGUAGE',
-                        'B-DATE', 'I-DATE', 'B-TIME', 'I-TIME',
-                        'B-PERCENT', 'I-PERCENT', 'B-MONEY', 'I-MONEY',
-                        'B-QUANTITY', 'I-QUANTITY', 'B-ORDINAL', 'I-ORDINAL',
-                        'B-CARDINAL', 'I-CARDINAL'
-                        ],
-    'btc': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
-    'ieer': ['O', 'B-PER', 'I-PER', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG',
-                        'B-PCT', 'I-PCT', 'B-MON', 'I-MON',
-                        'B-TIM', 'I-TIM', 'B-DAT', 'I-DAT',
-                        'B-DUR', 'I-DUR','B-CAR','I-CAR',
-                        'B-MEA', 'I-MEA'
-                        ],
-    'ritter': ['O', 'B-person', 'I-person', 'B-geo-loc', 'I-geo-loc', 'B-facility', 'I-facility',
-                    'B-company', 'I-company', 'B-sportsteam', 'I-sportsteam',
-                    'B-musicartist', 'I-musicartist', 'B-product', 'I-product',
-                    'B-tvshow', 'I-tvshow','B-movie','I-movie',
-                    'B-other', 'I-other'
-                    ],
-    're3d': ['O', 'B-Person', 'I-Person', 'B-DocumentReference', 'I-DocumentReference', 'B-Location', 'I-Location',
-                        'B-MilitaryPlatform', 'I-MilitaryPlatform', 'B-Money', 'I-Money',
-                        'B-Nationality', 'I-Nationality', 'B-Organisation', 'I-Organisation',
-                        'B-Quantity', 'I-Quantity','B-Temporal','I-Temporal',
-                        'B-Weapon', 'I-Weapon'
-                        ],
-    'gum': ['O', 'B-person', 'I-person', 'B-place', 'I-place', 'B-organization', 'I-organization',
-                        'B-quantity', 'I-quantity', 'B-time', 'I-time',
-                        'B-event', 'I-event', 'B-abstract', 'I-abstract',
-                        'B-substance', 'I-substance','B-object','I-object',
-                        'B-animal', 'I-animal','B-plant', 'I-plant'
-                        ]
-}
-
+    {
+        'conll2003': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
+        'wnut2017': ['O', 'B-location', 'I-location', 'B-corporation', 'I-corporation', 'B-person', 'I-person',
+                     'B-product', 'I-product', 'B-creative-work', 'I-creative-work',
+                     'B-group', 'I-group'],
+        'wikigold': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
+        'ontonote': ['O', 'B-PERSON', 'I-PERSON', 'B-NORP', 'I-NORP', 'B-FAC', 'I-FAC',
+                     'B-ORG', 'I-ORG', 'B-GPE', 'I-GPE',
+                     'B-LOC', 'I-LOC', 'B-PRODUCT', 'I-PRODUCT',
+                     'B-EVENT', 'I-EVENT', 'B-WORK_OF_ART', 'I-WORK_OF_ART',
+                     'B-LAW', 'I-LAW', 'B-LANGUAGE', 'I-LANGUAGE',
+                     'B-DATE', 'I-DATE', 'B-TIME', 'I-TIME',
+                     'B-PERCENT', 'I-PERCENT', 'B-MONEY', 'I-MONEY',
+                     'B-QUANTITY', 'I-QUANTITY', 'B-ORDINAL', 'I-ORDINAL',
+                     'B-CARDINAL', 'I-CARDINAL'
+                     ],
+        'btc': ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC'],
+        'ieer': ['O', 'B-PER', 'I-PER', 'B-LOC', 'I-LOC', 'B-ORG', 'I-ORG',
+                 'B-PCT', 'I-PCT', 'B-MON', 'I-MON',
+                 'B-TIM', 'I-TIM', 'B-DAT', 'I-DAT',
+                 'B-DUR', 'I-DUR', 'B-CAR', 'I-CAR',
+                 'B-MEA', 'I-MEA'
+                 ],
+        'ritter': ['O', 'B-person', 'I-person', 'B-geo-loc', 'I-geo-loc', 'B-facility', 'I-facility',
+                   'B-company', 'I-company', 'B-sportsteam', 'I-sportsteam',
+                   'B-musicartist', 'I-musicartist', 'B-product', 'I-product',
+                   'B-tvshow', 'I-tvshow', 'B-movie', 'I-movie',
+                   'B-other', 'I-other'
+                   ],
+        're3d': ['O', 'B-Person', 'I-Person', 'B-DocumentReference', 'I-DocumentReference', 'B-Location', 'I-Location',
+                 'B-MilitaryPlatform', 'I-MilitaryPlatform', 'B-Money', 'I-Money',
+                 'B-Nationality', 'I-Nationality', 'B-Organisation', 'I-Organisation',
+                 'B-Quantity', 'I-Quantity', 'B-Temporal', 'I-Temporal',
+                 'B-Weapon', 'I-Weapon'
+                 ],
+        'gum': ['O', 'B-person', 'I-person', 'B-place', 'I-place', 'B-organization', 'I-organization',
+                'B-quantity', 'I-quantity', 'B-time', 'I-time',
+                'B-event', 'I-event', 'B-abstract', 'I-abstract',
+                'B-substance', 'I-substance', 'B-object', 'I-object',
+                'B-animal', 'I-animal', 'B-plant', 'I-plant'
+                ]
+    }
 
 
 label_to_id_dict = \
-{
-    'conll2003': {l: i for i, l in enumerate(label_list_dict['conll2003'])},
-    'wnut2017': {l: i for i, l in enumerate(label_list_dict['wnut2017'])},
-    'wikigold': {l: i for i, l in enumerate(label_list_dict['wikigold'])},
-    'ontonote': {l: i for i, l in enumerate(label_list_dict['ontonote'])},
-    'btc': {l: i for i, l in enumerate(label_list_dict['btc'])},
-    'ieer': {l: i for i, l in enumerate(label_list_dict['ieer'])},
-    'ritter': {l: i for i, l in enumerate(label_list_dict['ritter'])},
-    're3d': {l: i for i, l in enumerate(label_list_dict['re3d'])},
-    'gum': {l: i for i, l in enumerate(label_list_dict['gum'])},
-}
-
-
-
-
+    {
+        'conll2003': {l: i for i, l in enumerate(label_list_dict['conll2003'])},
+        'wnut2017': {l: i for i, l in enumerate(label_list_dict['wnut2017'])},
+        'wikigold': {l: i for i, l in enumerate(label_list_dict['wikigold'])},
+        'ontonote': {l: i for i, l in enumerate(label_list_dict['ontonote'])},
+        'btc': {l: i for i, l in enumerate(label_list_dict['btc'])},
+        'ieer': {l: i for i, l in enumerate(label_list_dict['ieer'])},
+        'ritter': {l: i for i, l in enumerate(label_list_dict['ritter'])},
+        're3d': {l: i for i, l in enumerate(label_list_dict['re3d'])},
+        'gum': {l: i for i, l in enumerate(label_list_dict['gum'])},
+    }
 
 
 # ======================================================================
@@ -384,6 +382,8 @@ ner_features = train_dataset.features
 
 # In the event the labels are not a `Sequence[ClassLabel]`, we will need to go through the dataset to get the
 # unique labels.
+
+
 def get_label_list(labels):
     unique_labels = set()
     for label in labels:
@@ -392,7 +392,8 @@ def get_label_list(labels):
     label_list.sort()
     return label_list
 
-if args.task_name in args.ner_datasets: #place holder
+
+if args.task_name in args.ner_datasets:  # place holder
     # If the labels are of type ClassLabel, they are already integers and we have the map stored somewhere.
     # Otherwise, we have to get the list of labels manually.}
     # label_list = get_label_list(train_dataset[summary_column])
@@ -403,7 +404,6 @@ if args.task_name in args.ner_datasets: #place holder
 
     print('label_list: ', label_list)
     print('label_to_id: ', label_to_id)
-
 
     # Model has labels -> use them.
     if model.config.label2id != PretrainedConfig(num_labels=num_labels).label2id:
@@ -420,7 +420,8 @@ if args.task_name in args.ner_datasets: #place holder
 
     # Set the correspondences label/ID inside the model config
     model.config.label2id = {l: i for i, l in enumerate(label_list)}
-    model.config.id2label = {i: l for i, l in enumerate(label_list)}  # TODO: careful if you want to cut the dataset
+    # TODO: careful if you want to cut the dataset
+    model.config.id2label = {i: l for i, l in enumerate(label_list)}
 
     # Map that sends B-Xxx label to its I-Xxx counterpart
     b_to_i_label = []
@@ -470,7 +471,7 @@ else:
         )
 
 
-print('taskcla: ',taskcla)
+print('taskcla: ', taskcla)
 
 # Log a few random samples from the training set:
 
@@ -484,7 +485,8 @@ for index in random.sample(range(len(train_dataset)), 1):
     logger.info(
         f"Sample {index} of the training set: {train_dataset[index]}. Decode to: {args.tokenizer.decode(train_dataset[index]['input_ids'])} and {args.tokenizer.decode(label)}")
 
-label_pad_token_id = -100 if args.ignore_pad_token_for_loss else args.tokenizer.pad_token_id
+label_pad_token_id = - \
+    100 if args.ignore_pad_token_for_loss else args.tokenizer.pad_token_id
 
 data_collator = DataCollatorForSeq2Seq(
     args.tokenizer,
@@ -495,27 +497,33 @@ data_collator = DataCollatorForSeq2Seq(
 )
 
 
-print('train_dataset: ',len(train_dataset))
+print('train_dataset: ', len(train_dataset))
 
-train_dataloader = DataLoader(train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_batch_size)
-dev_dataloader = DataLoader(dev_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
-train_pool_loader = DataLoader(train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_pool_batch_size)
+train_dataloader = DataLoader(train_dataset, shuffle=True,
+                              collate_fn=data_collator, batch_size=args.per_device_train_batch_size)
+dev_dataloader = DataLoader(
+    dev_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
+train_pool_loader = DataLoader(train_dataset, shuffle=True, collate_fn=data_collator,
+                               batch_size=args.per_device_train_pool_batch_size)
 
 # above train/dev done ======================================
-# bellow is tesitng, invovle different type of datasets and need different hyper-poarameters
+# bellow is testing, invovle different type of datasets and need different hyper-parameters
 
 
 test_loaders = []
-for eval_t in range(args.ft_task + 1): # last one is the current one
+for eval_t in range(args.ft_task + 1):  # last one is the current one
     test_dataset = datasets[eval_t]['test']
+    if 'ldbr' in args.baseline:
+        test_dataset = ldbr.process_dataset(test_dataset, args.tokenizer)
     args.task_name = args.all_tasks[eval_t]  # self.args.task_name has chaned
     if 'mix' in args.baseline and 'pool' in args.baseline:
-        args = utils.update_hyparameter_for_mix_pool(args) # update args for the hyper-parameters
+        args = utils.update_hyparameter_for_mix_pool(
+            args)  # update args for the hyper-parameters
     elif 'mix' in args.baseline:
-        args = utils.update_hyparameter_for_mix_norm(args) # update args for the hyper-parameters
-    print('args.task_name : ',args.task_name)
+        args = utils.update_hyparameter_for_mix_norm(
+            args)  # update args for the hyper-parameters
+    print('args.task_name : ', args.task_name)
     with accelerator.main_process_first():
-
         if args.task_name in args.ner_datasets:
             test_dataset = test_dataset.map(
                 tokenize_and_align_labels,
@@ -535,7 +543,6 @@ for eval_t in range(args.ft_task + 1): # last one is the current one
                 desc="Running tokenizer on dataset",
             )
 
-
     data_collator = DataCollatorForSeq2Seq(
         args.tokenizer,
         model=model,
@@ -544,10 +551,11 @@ for eval_t in range(args.ft_task + 1): # last one is the current one
         # important, you cannot set n_tokens to a random number then
     )
 
-    test_dataloader = DataLoader(test_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
+    test_dataloader = DataLoader(
+        test_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
     test_loaders.append(test_dataloader)
 
 
 appr = Appr(config, args)
-appr.train(model,train_dataloader,train_dataset,dev_dataloader,test_loaders,train_pool_loader,accelerator)
-
+appr.train(model, train_dataloader, train_dataset, dev_dataloader,
+           test_loaders, train_pool_loader, accelerator)

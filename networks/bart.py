@@ -198,7 +198,6 @@ class BartAttention(nn.Module):
         # if key_value_states are provided this layer is used as a cross-attention layer
         # for the decoder
         is_cross_attention = key_value_states is not None
-
         bsz, tgt_len, _ = hidden_states.size()
 
         # get query proj
@@ -1451,7 +1450,6 @@ class MyBartForConditionalGeneration(ModelWithHeadsAdaptersMixin, BartPretrained
 
         Returns:
         """
-
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if labels is not None:
@@ -1745,7 +1743,8 @@ class MyBartForSequenceClassification(ModelWithHeadsAdaptersMixin, BartPretraine
         output_hidden_states=None,
         return_dict=None,
         task=None,
-        my_loss = None
+        my_loss = None,
+        nsp_labels=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -2017,7 +2016,8 @@ class MyBartForTokenClassification(ModelWithHeadsAdaptersMixin, BartPretrainedMo
         output_hidden_states=None,
         return_dict=None,
         my_loss=None,
-        task=None
+        task=None,
+        nsp_labels=None,
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

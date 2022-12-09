@@ -125,7 +125,7 @@ def get_dataset(accelerator, logger, args):
                     sentence = tmp_data[dt]['sentence']
                     term = tmp_data[dt]['term']
                     cls_labels = label2idx[tmp_data[dt]['polarity']]
-                    datasets[ds]['source'].append(sentence + args.tokenizer.sep_token + term)
+                    datasets[ds]['source'].append(sentence + ' ' + args.tokenizer.sep_token + ' ' + term)
                     datasets[ds]['target'].append(label)
                     datasets[ds]['task'].append(t)
                     datasets[ds]['cls_labels'].append(cls_labels)

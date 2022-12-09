@@ -9,17 +9,18 @@ import torch.nn.functional as F
 from copy import deepcopy
 from torch import nn
 from networks.baselines.supsup import MultitaskMaskLinear
-
+from networks.baselines.dytox import MyRobertaForSequenceClassificationDyTox
 from networks.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
 from networks.roberta import MyRobertaForSequenceClassification,MyRobertaForTokenClassification
 from networks.bert import MyBertForSequenceClassification,MyBertForTokenClassification
-
+from networks.baselines.ldbr import MyRobertaForSequenceClassificationLDBR
 import evaluate
 from datasets import load_dataset, load_metric
 from networks.model import MyModel
-from networks.prompt.tuning import MyBartForConditionalGenerationSoftPromptTunning,MyBartForSequenceClassificationSoftPromptTunning,MyBartForTokenClassificationSoftPromptTunning
-from networks.baselines.l2p import MyBartForSequenceClassificationSoftL2P,MyBartForConditionalGenerationSoftL2P,MyBartForTokenClassificationSoftL2P
+from networks.prompt.tuning import MyBartForConditionalGenerationSoftPromptTunning,MyRobertaForTokenClassificationSoftPromptTunning, MyRobertaForSequenceClassificationSoftPromptTunning
+from networks.baselines.l2p import MyRobertaForSequenceClassificationSoftL2P,MyBartForConditionalGenerationSoftL2P,MyRobertaForTokenClassificationSoftL2P
 from networks.prompt.inference import MyBartForConditionalGenerationSoftPromptInfer
+from networks.baselines.dualprompt import DualPromptBartForConditionalGeneration, DualPromptRobertaForTokenClassification, DualPromptRobertaForSequenceClassification
 from networks.baselines import cat
 
 ########################################################################################################################
@@ -604,7 +605,6 @@ def prepare_sequence_finetune(args):
                          ]
     args.ner_datasets = ['ieer', 'btc', 'gum', 'ritter', 're3d', 'wnut2017', 'wikigold', 'conll2003', 'ontonote']
 
-
     args.classification = args.asc_datasets + args.five_large_datasets + args.ner_datasets
     args.generation = args.dialogue_datasets + args.summerization_datasets
 
@@ -716,22 +716,31 @@ def _lookfor_model_prompt(taskcla,args, config):
     if args.task_name in args.ner_datasets:
 
         if 'l2p' in args.baseline:
-            TUNE_MODEL = MyBartForTokenClassificationSoftL2P
-            INFER_MODEL = MyBartForTokenClassificationSoftL2P
+            TUNE_MODEL = MyRobertaForTokenClassificationSoftL2P
+            INFER_MODEL = MyRobertaForTokenClassificationSoftL2P
+        elif 'dualprompt' in args.baseline:
+            TUNE_MODEL = DualPromptRobertaForTokenClassification
+            INFER_MODEL = DualPromptRobertaForTokenClassification
         else:
-            TUNE_MODEL = MyBartForTokenClassificationSoftPromptTunning
-            INFER_MODEL = MyBartForTokenClassificationSoftPromptTunning
+            TUNE_MODEL = MyRobertaForTokenClassificationSoftPromptTunning
+            INFER_MODEL = MyRobertaForTokenClassificationSoftPromptTunning
     elif args.task_name in args.classification:
 
         if 'l2p' in args.baseline:
-            TUNE_MODEL = MyBartForSequenceClassificationSoftL2P
-            INFER_MODEL = MyBartForSequenceClassificationSoftL2P
+            TUNE_MODEL = MyRobertaForSequenceClassificationSoftL2P
+            INFER_MODEL = MyRobertaForSequenceClassificationSoftL2P
+        elif 'dualprompt' in args.baseline:
+            TUNE_MODEL = DualPromptRobertaForSequenceClassification
+            INFER_MODEL = DualPromptRobertaForSequenceClassification
         else:
-            TUNE_MODEL = MyBartForSequenceClassificationSoftPromptTunning
-            INFER_MODEL = MyBartForSequenceClassificationSoftPromptTunning
+            TUNE_MODEL = MyRobertaForSequenceClassificationSoftPromptTunning
+            INFER_MODEL = MyRobertaForSequenceClassificationSoftPromptTunning
     elif args.task_name in args.generation:
         if 'l2p' in args.baseline:
             TUNE_MODEL =  MyBartForConditionalGenerationSoftL2P
+            INFER_MODEL = MyBartForConditionalGenerationSoftPromptInfer
+        elif 'dualprompt' in args.baseline:
+            TUNE_MODEL =  DualPromptBartForConditionalGeneration
             INFER_MODEL = MyBartForConditionalGenerationSoftPromptInfer
         else:
             TUNE_MODEL = MyBartForConditionalGenerationSoftPromptTunning
@@ -747,7 +756,7 @@ def _lookfor_model_prompt(taskcla,args, config):
     )
 
     for n, p in tune_model.named_parameters():
-        if 'classifier' in n:
+        if 'classifier' in n or 'lm_head' in n:
             p.requires_grad = True
         else:
             p.requires_grad = False
@@ -756,10 +765,27 @@ def _lookfor_model_prompt(taskcla,args, config):
         tune_model.initialize_soft_prompt(n_tokens=args.n_tokens)
     elif args.ft_task == 0 and 'l2p' in args.baseline:
         tune_model.initialize_soft_prompt(n_tokens=args.N * args.Lp)
-    elif 'l2p' in args.baseline:# load the trianed prompt pool and keys
+    elif 'l2p' in args.baseline: # load the trianed prompt pool and keys
         print('loadding key and prompt_pool')
         tune_model.keys = torch.load(os.path.join(args.prev_output, 'keys'))
         tune_model.prompt_pool = torch.load(os.path.join(args.prev_output, 'prompt_pool'))
+    elif args.ft_task > 0 and 'dualprompt' in args.baseline:
+        tune_model.keys = torch.load(os.path.join(args.prev_output, 'keys'))
+        tune_model.e_prompts = torch.load(os.path.join(args.prev_output, 'e_prompts'))
+        tune_model.g_prompt = torch.load(os.path.join(args.prev_output, 'g_prompt'))
+
+    if 'l2p' in args.baseline:
+        for p in tune_model.keys.parameters():
+            p.requires_grad = True
+        for p in tune_model.prompt_pool.parameters():
+            p.requires_grad = True
+    elif 'dualprompt' in args.baseline:
+        for p in tune_model.keys.parameters():
+            p.requires_grad = True
+        for p in tune_model.e_prompts.parameters():
+            p.requires_grad = True
+        for p in tune_model.g_prompt.parameters():
+            p.requires_grad = True
 
     infer_model = INFER_MODEL.from_pretrained(
         args.model_name_or_path,
@@ -769,16 +795,38 @@ def _lookfor_model_prompt(taskcla,args, config):
         args=args
     )
 
-    infer_model.model = tune_model.model
+    if 'roberta' in args.model_name_or_path:
+        infer_model.roberta = tune_model.roberta
+    else:
+        infer_model.model = tune_model.model
 
     for param in infer_model.parameters():
         param.requires_grad = False
 
-
-    model = MyModel(model=tune_model,teacher=infer_model, args=args)
+    model = MyModel(model=tune_model, teacher=infer_model, args=args)
 
     return model
 
+def _lookfor_model_dytox(taskcla,args, config):
+
+    if args.task_name in args.ner_datasets:
+        raise NotImplementedError
+    elif args.task_name in args.classification:
+        MODEL = MyRobertaForSequenceClassificationDyTox
+    elif args.task_name in args.generation:
+        raise NotImplementedError
+
+    model = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+
+    model = MyModel(model, args=args)
+
+    return model
 
 def _lookfor_model_ewc(taskcla,args, config):
 
@@ -810,6 +858,31 @@ def _lookfor_model_ewc(taskcla,args, config):
 
     return model
 
+def _lookfor_model_ldbr(taskcla, args, config):
+
+    if args.task_name in args.classification:
+        MODEL = MyRobertaForSequenceClassificationLDBR
+
+    model = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+    teacher = MODEL.from_pretrained(
+        args.model_name_or_path,
+        taskcla=taskcla,
+        from_tf=bool(".ckpt" in args.model_name_or_path),
+        config=config,
+        args=args
+    )
+
+    for param in teacher.parameters():  # nothing is trainable in teacher
+        param.requires_grad = False
+    model = MyModel(model, teacher, args=args)
+
+    return model
 
 def _lookfor_model_others(taskcla,args, config):
 
@@ -846,7 +919,7 @@ def _lookfor_model_others(taskcla,args, config):
 
     return model
 
-def lookfor_model_finetune(taskcla,args, config):
+def lookfor_model_finetune(taskcla, args, config):
 
     if args.model_name_or_path:  # only do electra
         if 'adapter' in args.baseline:
@@ -861,6 +934,14 @@ def lookfor_model_finetune(taskcla,args, config):
             model = _lookfor_model_prompt(taskcla,args, config)
             return model
 
+        elif 'ldbr' in args.baseline:
+            model = _lookfor_model_ldbr(taskcla, args, config)
+            return model
+        
+        elif 'dytox' in args.baseline:
+            model = _lookfor_model_dytox(taskcla, args, config)
+            return model
+        
         else:
             model = _lookfor_model_others(taskcla,args, config)
             return model

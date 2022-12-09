@@ -8,7 +8,7 @@ import os
 from utils import utils
 import math
 
-def compute(train_dataloader_prune,model,self_fisher,accelerator,args):
+def compute(train_dataloader_prune, model, self_fisher, accelerator, args):
     fisher_path = os.path.join(args.output_dir, 'fisher')
 
     if args.ft_task > 0:
@@ -74,7 +74,7 @@ def compute(train_dataloader_prune,model,self_fisher,accelerator,args):
 
 #TODO: incorrect === error
 
-def loss_compute(my_model,self_fisher):
+def loss_compute(my_model, self_fisher):
     loss_reg = 0
     if my_model.args.ft_task > 0:
 

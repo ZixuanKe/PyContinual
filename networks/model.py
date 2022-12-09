@@ -2,6 +2,7 @@
     Modified RobertaForSequenceClassification, RobertaForMaskedLM to accept **kwargs in forward.
 """
 import pdb
+from tkinter import HIDDEN
 import torch
 import torch.nn as nn
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput, ModelOutput, Seq2SeqLMOutput
@@ -48,7 +49,6 @@ class MyModel(nn.Module):
                 buffer=None,
                 subnetwork_importance=None):
 
-
         contrast_loss = None
         sum_loss = None
         logits = None
@@ -59,19 +59,21 @@ class MyModel(nn.Module):
         attention_mask = inputs['attention_mask']
 
         task = inputs["task"]
+
         if self.args.task_name in self.args.classification:
             cls_labels = inputs['cls_labels']
-            loss, logits = classification.run_forward(input_ids, attention_mask, task, cls_labels,self,self_fisher,masks, mask_pre)
+            nsp_labels = inputs['nsp_labels'] if 'nsp_labels' in inputs.keys() else None
+            loss, logits, hidden_states = classification.run_forward(input_ids, attention_mask, task, cls_labels, self, self_fisher,masks, mask_pre, nsp_labels)
         elif self.args.task_name in self.args.generation:
-            loss, logits = generation.run_forward(input_ids, attention_mask, task, labels,self,self_fisher,masks, mask_pre)
-
+            loss, logits, hidden_states = generation.run_forward(input_ids, attention_mask, task, labels,self,self_fisher,masks, mask_pre)
 
         return MyRobertaOutput(
             loss = loss,
             contrast_loss = contrast_loss,
             sum_loss = sum_loss,
             logits = logits,
-            ppl = ppl
+            ppl = ppl,
+            hidden_states = hidden_states
         )
 
 
@@ -82,6 +84,7 @@ class MyRobertaOutput(ModelOutput):
     sum_loss: torch.FloatTensor = None
     logits = None
     past_key_values = None
+    hidden_states = None
     decoder_hidden_states = None
     decoder_attentions = None
     cross_attentions = None
