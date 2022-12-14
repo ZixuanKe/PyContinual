@@ -21,7 +21,6 @@ import nltk
 from approaches import after_finetune, before_finetune
 from sklearn.metrics import f1_score
 from utils import utils
-from networks.baselines.lamaml import inner_update, define_task_lr_params
 
 
 
@@ -108,9 +107,6 @@ class Appr(object):
         ]
 
         optimizer = AdamW(optimizer_grouped_parameters)
-        if 'lamaml' in self.args.baseline:
-            define_task_lr_params(self.args, model)
-            self.args.opt_lr = accelerator.prepare(self.args.opt_lr)
         # Scheduler and math around the number of training steps.
         num_update_steps_per_epoch = math.ceil(len(train_loader) / self.args.gradient_accumulation_steps)
         if self.args.max_train_steps is None:
@@ -256,7 +252,7 @@ class Appr(object):
                             loss = outputs.loss
 
                             # replay here
-                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline) \
+                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'mer' in self.args.baseline) \
                                 and not (self.args.buffer is None or self.args.buffer.is_empty()) \
                                 and step % self.args.replay_freq == 0:
                                 
@@ -268,9 +264,6 @@ class Appr(object):
                                 loss += replay_outputs.loss * self.args.replay_beta
                                 if 'derpp' in self.args.baseline:
                                     loss += self.mse(replay_outputs.hidden_states[-1], replay_batch['logits']) * self.args.replay_alpha
-                            if 'lamaml' in self.args.baseline:
-                                model_ori = accelerator.unwrap_model
-                                fast_weights = inner_update(self.args, loss, model_ori)
                             # We keep track of the loss at each epoch
                             if self.args.with_tracking:
                                 total_loss += loss.detach().float()

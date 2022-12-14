@@ -21,10 +21,6 @@ class DualPromptRobertaLayer(MyRobertaLayer):
         """
         Concatenates prompt embeddings to inputs (hidden states of the previous layer).
         """
-
-        if len(list(hidden_states)) == 2:
-            hidden_states = hidden_states.unsqueeze(0)
-
         hidden_states = torch.cat([prompt_embeds, hidden_states], dim=1)
 
         return hidden_states
@@ -454,9 +450,6 @@ class DualPromptRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, Ro
         """
         inputs_embeds = self.roberta.embeddings(input_ids)
 
-        if len(list(inputs_embeds)) == 2:
-            inputs_embeds = inputs_embeds.unsqueeze(0)
-
         # Use the frozen pre-trained model to get the query features: q(x) = f(x)[0,:]
         q = self.roberta(inputs_embeds=inputs_embeds)[0][:, 0, :]
         if task_id is not None:
@@ -673,9 +666,6 @@ class DualPromptBartEncoderLayer(MyBartEncoderLayer):
         self.add_e_prompt = add_e_prompt
     
     def _cat_prompt_to_input(self, hidden_states, prompt_embeds):
-
-        if len(list(hidden_states)) == 2:
-            hidden_states = hidden_states.unsqueeze(0)
         
         hidden_states = torch.cat([prompt_embeds, hidden_states], dim=1)
         return hidden_states
@@ -1025,8 +1015,6 @@ class DualPromptBartForConditionalGeneration(MyBartForConditionalGeneration):
     def _prepare_prompts(self, input_ids, task_id=None):
         
         inputs_embeds = self.model.shared(input_ids)
-        if len(list(inputs_embeds)) == 2:
-            inputs_embeds = inputs_embeds.unsqueeze(0)
         
         q = self.model.encoder(inputs_embeds=inputs_embeds)[0][:, 0, :]
         if task_id is not None:

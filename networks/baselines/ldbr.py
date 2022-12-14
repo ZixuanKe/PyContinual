@@ -230,12 +230,12 @@ def process_dataset(dataset, tokenizer):
         sep_token = tokenizer.sep_token
         if sep_token in sent: # asc
             sep_place = sent.index(sep_token)
-        else:
-            sep_place = len(sent) - 1
-        if sep_place == 1:
+            if sep_place == 1:
             ## nsp requires sentence length more than 1 !!!!
-            sent = [sent[0], tokenizer.sep_token, sent[1], sent[2]]
-            sep_place = 2
+                sent = [sent[0], tokenizer.sep_token] + sent[1:]
+                sep_place = 2
+        else:
+            sep_place = len(sent)
             
         place = random.randint(1, sep_place - 1)
         mask = random.random() > 0.5

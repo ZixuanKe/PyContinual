@@ -847,7 +847,6 @@ class MyRobertaModel(BertModelAdaptersMixin, RobertaPreTrainedModel):
 
         batch_size, seq_length = input_shape
         device = input_ids.device if input_ids is not None else inputs_embeds.device
-
         # past_key_values_length
         past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
 
@@ -1049,7 +1048,7 @@ class MyRobertaForSequenceClassification(ModelWithHeadsAdaptersMixin, RobertaPre
                 loss += cur_loss
                 logits.append(logit)
 
-            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'agem' not in self.args.baseline and 'derpp' not in self.args.baseline:
+            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'agem' not in self.args.baseline and 'derpp' not in self.args.baseline and 'mer' not in self.args.baseline:
                 # TODO: all replay methods should not calculate this.
                 logits = torch.cat(logits)
 
@@ -1202,7 +1201,7 @@ class MyRobertaForTokenClassification(ModelWithHeadsAdaptersMixin, RobertaPreTra
                 loss += cur_loss
                 logits.append(logit)
 
-            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'derpp' not in self.args.baseline and 'agem' not in self.args.baseline:
+            if 'mtl' not in self.args.baseline and 'comb' not in self.args.baseline and 'derpp' not in self.args.baseline and 'agem' not in self.args.baseline and 'mer' not in self.args.baseline:
                 # TODO: all replay methods should not calculate this.
                 logits = torch.cat(logits)
 
