@@ -39,7 +39,7 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
                 self_fisher[k] = self_fisher[k].cuda()
 
     # replay baselines TODO: use only one 'if'
-    elif 'ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'agem' in self.args.baseline:
+    elif 'ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'agem' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline:
         if self.args.ft_task == 0:
             buffer = Buffer(self.args.buffer_size_per_dataset * self.args.ntasks, accelerator.device,)
             if 'agem' in self.args.baseline:

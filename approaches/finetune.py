@@ -4,6 +4,7 @@ import math
 import numpy as np
 import os
 import torch
+from copy import deepcopy
 from tqdm.auto import tqdm
 from transformers import (
     MODEL_MAPPING,
@@ -20,7 +21,7 @@ import nltk
 from approaches import after_finetune, before_finetune
 from sklearn.metrics import f1_score
 from utils import utils
-
+from networks.baselines.lamaml import inner_update, define_task_lr_params
 
 
 
@@ -107,7 +108,9 @@ class Appr(object):
         ]
 
         optimizer = AdamW(optimizer_grouped_parameters)
-
+        if 'lamaml' in self.args.baseline:
+            define_task_lr_params(self.args, model)
+            self.args.opt_lr = accelerator.prepare(self.args.opt_lr)
         # Scheduler and math around the number of training steps.
         num_update_steps_per_epoch = math.ceil(len(train_loader) / self.args.gradient_accumulation_steps)
         if self.args.max_train_steps is None:
@@ -218,7 +221,10 @@ class Appr(object):
                 try:
                     for epoch in range(starting_epoch, self.args.num_train_epochs):
                         model.train()
-
+                        if 'mer' in self.args.baseline:
+                            model_ori = accelerator.unwrap_model(model)
+                            model_ori.zero_grad()
+                            before = deepcopy(model_ori.state_dict())
                         if self.args.with_tracking:
                             total_loss = 0
                         for step, batch in enumerate(train_loader):
@@ -240,14 +246,17 @@ class Appr(object):
                                 model_ori = accelerator.unwrap_model(model)
                                 masks = utils.mask(model, accelerator, self.args)
                                 outputs = model(batch, masks=masks, mask_pre=mask_pre)
-
+                            elif 'mer' in self.args.baseline:
+                                model_ori = accelerator.unwrap_model(model)
+                                weights_before = deepcopy(model_ori.state_dict())
+                                outputs = model(batch)
                             else:
                                 outputs = model(batch)
 
                             loss = outputs.loss
 
                             # replay here
-                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline) \
+                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline) \
                                 and not (self.args.buffer is None or self.args.buffer.is_empty()) \
                                 and step % self.args.replay_freq == 0:
                                 
@@ -259,7 +268,9 @@ class Appr(object):
                                 loss += replay_outputs.loss * self.args.replay_beta
                                 if 'derpp' in self.args.baseline:
                                     loss += self.mse(replay_outputs.hidden_states[-1], replay_batch['logits']) * self.args.replay_alpha
-                            
+                            if 'lamaml' in self.args.baseline:
+                                model_ori = accelerator.unwrap_model
+                                fast_weights = inner_update(self.args, loss, model_ori)
                             # We keep track of the loss at each epoch
                             if self.args.with_tracking:
                                 total_loss += loss.detach().float()
@@ -312,6 +323,17 @@ class Appr(object):
                                         agem.overwrite_grad(model_ori.model.parameters, g_tilde, self.args.grad_dims)
                                     else:
                                         agem.overwrite_grad(model_ori.model.parameters, self.args.grad_xy, self.args.grad_dims)
+                            
+                            if 'mer' in self.args.baseline:
+                                # Within batch Reptile meta-update:
+                                model_ori = accelerator.unwrap_model(model)
+                                weights_after = model_ori.state_dict()
+                                model_ori.load_state_dict(
+                                    {
+                                        name : weights_before[name] + ((weights_after[name] - weights_before[name]) * self.args.mer_beta) 
+                                        for name in weights_before
+                                    }
+                                )
 
 
                             if 'adapter_hat' in self.args.baseline   \
@@ -354,6 +376,17 @@ class Appr(object):
                                     utils.log_loss(writer, scalar_value=loss.item(), global_step=global_step)
                                     if outputs.sum_loss is not None: utils.log_loss(writer, loss_name=' summerization loss', scalar_value=outputs.sum_loss.item(), global_step=global_step)
                                     if outputs.contrast_loss is not None: utils.log_loss(writer, loss_name=' contrast loss', scalar_value=outputs.contrast_loss.item(), global_step=global_step)
+                        
+                        if 'mer' in self.args.baseline:
+                            model_ori = accelerator.unwrap_model(model)
+                            after = model_ori.state_dict()
+                            # Across batch Reptile meta-update:
+                            model_ori.load_state_dict(
+                                {
+                                    name : before[name] + ((after[name] - before[name]) * self.args.mer_gamma) 
+                                    for name in before
+                                }
+                            )
 
 
                         #

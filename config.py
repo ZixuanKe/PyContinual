@@ -332,11 +332,14 @@ def parse_args():
     parser.add_argument(
         '--replay_freq',
         type=int,
-        default=10,
-        help='replay frequency. Every 10 step we do replay once.'
+        default=1,
+        help='replay frequency.'
     )
     parser.add_argument('--replay_beta', default=0.03, type=float, help='(default=%(default)f)')
     parser.add_argument('--replay_alpha', default=0.01, type=float, help='(default=%(default)f)')
+    parser.add_argument('--mer_beta', default=0.03, type=float, help='(default=%(default)f)')
+    parser.add_argument('--mer_gamma', default=1.0, type=float, help='(default=%(default)f)')
+    parser.add_argument('--grad_clip_norm', default=1.0, type=float, help='(default=%(default)f)')
     args = parser.parse_args()
 
     return args
