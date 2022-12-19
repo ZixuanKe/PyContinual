@@ -246,6 +246,20 @@ class Appr(object):
                                 model_ori = accelerator.unwrap_model(model)
                                 weights_before = deepcopy(model_ori.state_dict())
                                 outputs = model(batch)
+                            elif 'lamaml' in self.args.baseline:
+                                
+                                if not (self.args.buffer is None or self.args.buffer.is_empty()) and step % self.args.replay_freq == 0:
+                                    replay_batch = self.args.buffer.get_datadict(size=batch['input_ids'].shape[0])
+                                    if self.args.task_name in self.args.classification:
+                                        replay_batch['cls_labels'] = replay_batch['labels']
+
+                                    for key in batch.keys():
+                                        if key == 'labels': continue    # TODO: modify this when add generation baseline
+                                        batch[key] = torch.cat((batch[key], replay_batch[key]), dim=0)
+
+                                self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, is_train=True)
+                                outputs = self.meta_learner.meta_loss(self.fast_weights, batch, is_train=True)
+
                             else:
                                 outputs = model(batch)
 
@@ -347,6 +361,9 @@ class Appr(object):
                             if step % self.args.gradient_accumulation_steps == 0 or step == len(train_loader) - 1:
                                 optimizer.step()
                                 global_step += 1
+                                if 'lamaml' in self.args.baseline:
+                                    self.meta_learner.step_and_zero_grad() 
+                                    self.fast_weights = None
                                 lr_scheduler.step()
                                 optimizer.zero_grad()
                                 progress_bar.update(1)
@@ -363,7 +380,6 @@ class Appr(object):
                                     for n, p in model.named_parameters():
                                         if 'adapters.e' in n or 'model.e' in n:
                                             p.data = torch.clamp(p.data, -self.args.thres_emb, self.args.thres_emb)
-
 
                                 if accelerator.is_main_process:
                                     utils.log_loss(writer, scalar_value=loss.item(), global_step=global_step)

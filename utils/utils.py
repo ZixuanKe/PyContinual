@@ -898,7 +898,7 @@ def _lookfor_model_ldbr(taskcla, args, config):
 
     return model
 
-def _lookfor_model_others(taskcla,args, config):
+def _lookfor_model_others(taskcla, args, config):
 
 
     if 'roberta' in args.model_name_or_path:
