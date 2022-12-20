@@ -256,9 +256,15 @@ class Appr(object):
                                     for key in batch.keys():
                                         if key == 'labels': continue    # TODO: modify this when add generation baseline
                                         batch[key] = torch.cat((batch[key], replay_batch[key]), dim=0)
-
-                                self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, is_train=True)
-                                outputs = self.meta_learner.meta_loss(self.fast_weights, batch, is_train=True)
+                                
+                                outputs = None
+                                for i in range(batch['input_ids'].shape[0]):
+                                    self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, i, is_train=True)
+                                    meta_outputs = self.meta_learner.meta_loss(self.fast_weights, batch, i, is_train=True)
+                                    if outputs is None: outputs = meta_outputs
+                                    else:
+                                        outputs.loss += meta_outputs.loss / batch['input_ids'].shape[0]
+                                    
 
                             else:
                                 outputs = model(batch)
@@ -359,11 +365,12 @@ class Appr(object):
 
 
                             if step % self.args.gradient_accumulation_steps == 0 or step == len(train_loader) - 1:
-                                optimizer.step()
-                                global_step += 1
                                 if 'lamaml' in self.args.baseline:
                                     self.meta_learner.step_and_zero_grad() 
                                     self.fast_weights = None
+                                else:
+                                    optimizer.step()
+                                global_step += 1
                                 lr_scheduler.step()
                                 optimizer.zero_grad()
                                 progress_bar.update(1)

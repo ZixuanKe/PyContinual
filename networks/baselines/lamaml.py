@@ -41,7 +41,12 @@ class Learner:
         self.model = model
     
     def step_and_zero_grad(self):
-        self.opt_lr.step()      
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.grad_clip_norm)
+        torch.nn.utils.clip_grad_norm_(self.alpha_lr.parameters(), self.args.grad_clip_norm)
+        self.opt_lr.step()
+        for i, p in enumerate(self.model.parameters()):
+            if p.grad is not None:
+                p.data = p.data - p.grad * nn.functional.relu(self.alpha_lr[i])   
         self.opt_lr.zero_grad()
         self.alpha_lr.zero_grad()
         self.model.zero_grad()
@@ -61,7 +66,7 @@ class Learner:
     def prepare(self, accelerator):
         self.alpha_lr, self.opt_lr = accelerator.prepare(self.alpha_lr, self.opt_lr)
 
-    def meta_loss(self, fast_weights, batch, is_train=True):
+    def meta_loss(self, fast_weights, batch, i, is_train=True):
 
         if fast_weights is None:
             fast_weights = OrderedDict(self.model.named_parameters())
@@ -70,7 +75,14 @@ class Learner:
             raise NotImplementedError
         
         elif self.args.task_name in self.args.classification:
-            loss, logits = self.functional_robertaforsequenceclassification(fast_weights, self.config, input_ids=batch['input_ids'], attention_mask=batch['attention_mask'], is_train=is_train, labels=batch['cls_labels'], task=batch['task'])
+            loss, logits = self.functional_robertaforsequenceclassification(
+                fast_weights, self.config, 
+                input_ids=batch['input_ids'][i].unsqueeze(0), 
+                attention_mask=batch['attention_mask'][i].unsqueeze(0), 
+                is_train=is_train, 
+                labels=batch['cls_labels'][i].unsqueeze(0), 
+                task=batch['task'][i].unsqueeze(0)
+            )
         else:
             raise NotImplementedError
 
@@ -83,11 +95,11 @@ class Learner:
             hidden_states = None
         )
     
-    def inner_update(self, fast_weights, batch, is_train=True):
+    def inner_update(self, fast_weights, batch, i, is_train=True):
         """
         Update the fast weights using the current samples and return the updated fast
         """
-        outputs = self.meta_loss(fast_weights, batch, is_train=is_train)
+        outputs = self.meta_loss(fast_weights, batch, i, is_train=is_train)
         loss = outputs.loss
 
         if fast_weights is None:
@@ -125,7 +137,7 @@ class Learner:
                 x = sequence_output[t_id].unsqueeze(0)
                 x = F.dropout(x[:, 0, :], p=config.hidden_dropout_prob, training=is_train)
                 x = F.linear(x, fast_weights[f'classifiers.{t}.dense.weight'], fast_weights[f'classifiers.{t}.dense.bias'])
-                x = F.tanh(x)
+                x = torch.tanh(x)
                 x = F.dropout(x, p=config.hidden_dropout_prob, training=is_train)
                 logit = F.linear(x, fast_weights[f'classifiers.{t}.out_proj.weight'], fast_weights[f'classifiers.{t}.out_proj.bias'])
                 num_labels = self.taskcla[t][1]
