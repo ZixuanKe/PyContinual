@@ -626,6 +626,18 @@ def prepare_sequence_finetune(args):
         else:
             args.adapter_lr = 5e-2
 
+    if 'sum' in args.sequence_file and ('prompt' in args.baseline or 'l2p' in args.baseline):
+        args.prompt_lr = 0.05
+        args.learning_rate = 0.005
+        if 'prompt' in args.baseline:
+            args.max_source_length = 1000
+        elif 'l2p' in args.baseline:
+            args.max_source_length = 960
+    
+    if 'drg' in args.sequence_file and ('prompt' in args.baseline or 'l2p' in args.baseline):
+        args.prompt_lr = 0.05
+        args.learning_rate = 0.005
+
     args.is_reference = False
     args.is_transfer = False
 
@@ -636,7 +648,7 @@ def prepare_sequence_finetune(args):
 
 def load_my_metric(args):
     if args.task_name in args.dialogue_datasets:
-        metric = evaluate.load("bleu")
+        metric = evaluate.load("./utils/bleu.py")
     elif args.task_name in args.ner_datasets:
         metric = evaluate.load("seqeval")
     else:
@@ -652,14 +664,16 @@ def _lookfor_model_adapter(taskcla,args, config):
             MODEL = MyBartForSequenceClassification
         elif args.task_name in args.generation:
             MODEL = MyBartForConditionalGeneration
-
-    if 'bert' in args.model_name_or_path:
+    elif 'roberta' in args.model_name_or_path:
+        if args.task_name in args.ner_datasets:
+            MODEL = MyRobertaForTokenClassification
+        elif args.task_name in args.classification:
+            MODEL = MyRobertaForSequenceClassification
+    elif 'bert' in args.model_name_or_path:
         if args.task_name in args.ner_datasets:
             MODEL = MyBertForTokenClassification
         elif args.task_name in args.classification:
             MODEL = MyBertForSequenceClassification
-
-
 
 
     model = MODEL.from_pretrained(
@@ -831,9 +845,9 @@ def _lookfor_model_dytox(taskcla,args, config):
 def _lookfor_model_ewc(taskcla,args, config):
 
     if args.task_name in args.ner_datasets:
-        MODEL = MyBartForTokenClassification
+        MODEL = MyRobertaForTokenClassification
     elif args.task_name in args.classification:
-        MODEL = MyBartForSequenceClassification
+        MODEL = MyRobertaForSequenceClassification
     elif args.task_name in args.generation:
         MODEL = MyBartForConditionalGeneration
 
@@ -884,7 +898,7 @@ def _lookfor_model_ldbr(taskcla, args, config):
 
     return model
 
-def _lookfor_model_others(taskcla,args, config):
+def _lookfor_model_others(taskcla, args, config):
 
 
     if 'roberta' in args.model_name_or_path:

@@ -15,14 +15,11 @@ class BARTL2PMixinConditionalGneration(BARTPromptTuningMixinCommon):
         Selects prompts which minimize the matching function and concatenates them to the inputs.
         x_p = [P_s1; ... ; P_sN; x_e]
         """
-
-
-        inputs_embeds = self.model.shared(input_ids).squeeze(0)
+        inputs_embeds = self.model.shared(input_ids)
 
         decoder_input_ids = shift_tokens_right(
             labels, self.config.pad_token_id, self.config.decoder_start_token_id
         )
-
 
         # Use the frozen pre-trained model to get the query features: q(x) = f(x)[0,:]
         q = self.model(decoder_input_ids=decoder_input_ids,inputs_embeds=inputs_embeds)[0][:, 0, :]
@@ -118,9 +115,6 @@ class RobertaL2PMixinClassification(RobertaPromptTuningMixinCommon):
         x_p = [P_s1; ... ; P_sN; x_e]
         """
         inputs_embeds = self.roberta.embeddings.word_embeddings(input_ids)
-
-        if len(list(inputs_embeds)) == 2:
-            inputs_embeds = inputs_embeds.unsqueeze(0)
 
         # Use the frozen pre-trained model to get the query features: q(x) = f(x)[0,:]
         q = self.roberta(inputs_embeds=inputs_embeds)[0][:, 0, :]
@@ -335,7 +329,7 @@ class BARTL2PMixinAll(BARTPromptTuningMixinCommon):
         inputs_embeds = self.model.shared(input_ids)
         decoder_input_ids = shift_tokens_right(input_ids, self.config.pad_token_id, self.config.decoder_start_token_id)
 
-        if len(list(inputs_embeds)) == 2:
+        if len(list(inputs_embeds.shape)) == 2:
             inputs_embeds = inputs_embeds.unsqueeze(0)
 
         # Use the frozen pre-trained model to get the query features: q(x) = f(x)[0,:]

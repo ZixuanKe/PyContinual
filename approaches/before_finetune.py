@@ -17,7 +17,8 @@ MODEL_CONFIG_CLASSES = list(MODEL_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 from utils import utils
 from networks.buffer import Buffer
-from networks.baselines import ewc, hat, cat
+from networks.baselines import ewc, hat, cat, lamaml
+from collections import OrderedDict
 
 
         # before training ***********************************************************************************************
@@ -39,7 +40,18 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
                 self_fisher[k] = self_fisher[k].cuda()
 
     # replay baselines TODO: use only one 'if'
-    elif 'ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'agem' in self.args.baseline:
+    elif 'ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'agem' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline:
+        if 'lamaml' in self.args.baseline:
+            model_ori = accelerator.unwrap_model(model).model
+            self.fast_weights = OrderedDict(model_ori.named_parameters())
+            self.meta_learner = lamaml.Learner(model_ori.config, model_ori.taskcla, self.args, model_ori)
+            if self.args.ft_task > 0:
+                saved_alpha_lr = torch.load(os.path.join(self.args.prev_output, 'alpha_lr'), map_location='cpu')
+                self.meta_learner.define_task_lr_params(saved_alpha_lr=saved_alpha_lr)
+            else:
+                self.meta_learner.define_task_lr_params()
+            self.meta_learner.prepare(accelerator)
+
         if self.args.ft_task == 0:
             buffer = Buffer(self.args.buffer_size_per_dataset * self.args.ntasks, accelerator.device,)
             if 'agem' in self.args.baseline:

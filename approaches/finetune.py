@@ -4,6 +4,7 @@ import math
 import numpy as np
 import os
 import torch
+from copy import deepcopy
 from tqdm.auto import tqdm
 from transformers import (
     MODEL_MAPPING,
@@ -20,7 +21,6 @@ import nltk
 from approaches import after_finetune, before_finetune
 from sklearn.metrics import f1_score
 from utils import utils
-
 
 
 
@@ -107,7 +107,6 @@ class Appr(object):
         ]
 
         optimizer = AdamW(optimizer_grouped_parameters)
-
         # Scheduler and math around the number of training steps.
         num_update_steps_per_epoch = math.ceil(len(train_loader) / self.args.gradient_accumulation_steps)
         if self.args.max_train_steps is None:
@@ -218,7 +217,10 @@ class Appr(object):
                 try:
                     for epoch in range(starting_epoch, self.args.num_train_epochs):
                         model.train()
-
+                        if 'mer' in self.args.baseline:
+                            model_ori = accelerator.unwrap_model(model)
+                            model_ori.zero_grad()
+                            before = deepcopy(model_ori.state_dict())
                         if self.args.with_tracking:
                             total_loss = 0
                         for step, batch in enumerate(train_loader):
@@ -240,6 +242,29 @@ class Appr(object):
                                 model_ori = accelerator.unwrap_model(model)
                                 masks = utils.mask(model, accelerator, self.args)
                                 outputs = model(batch, masks=masks, mask_pre=mask_pre)
+                            elif 'mer' in self.args.baseline:
+                                model_ori = accelerator.unwrap_model(model)
+                                weights_before = deepcopy(model_ori.state_dict())
+                                outputs = model(batch)
+                            elif 'lamaml' in self.args.baseline:
+                                
+                                if not (self.args.buffer is None or self.args.buffer.is_empty()) and step % self.args.replay_freq == 0:
+                                    replay_batch = self.args.buffer.get_datadict(size=batch['input_ids'].shape[0])
+                                    if self.args.task_name in self.args.classification:
+                                        replay_batch['cls_labels'] = replay_batch['labels']
+
+                                    for key in batch.keys():
+                                        if key == 'labels': continue    # TODO: modify this when add generation baseline
+                                        batch[key] = torch.cat((batch[key], replay_batch[key]), dim=0)
+                                
+                                outputs = None
+                                for i in range(batch['input_ids'].shape[0]):
+                                    self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, i, is_train=True)
+                                    meta_outputs = self.meta_learner.meta_loss(self.fast_weights, batch, i, is_train=True)
+                                    if outputs is None: outputs = meta_outputs
+                                    else:
+                                        outputs.loss += meta_outputs.loss / batch['input_ids'].shape[0]
+                                    
 
                             else:
                                 outputs = model(batch)
@@ -247,7 +272,7 @@ class Appr(object):
                             loss = outputs.loss
 
                             # replay here
-                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline) \
+                            if ('ldbr' in self.args.baseline or 'derpp' in self.args.baseline or 'mer' in self.args.baseline) \
                                 and not (self.args.buffer is None or self.args.buffer.is_empty()) \
                                 and step % self.args.replay_freq == 0:
                                 
@@ -259,7 +284,6 @@ class Appr(object):
                                 loss += replay_outputs.loss * self.args.replay_beta
                                 if 'derpp' in self.args.baseline:
                                     loss += self.mse(replay_outputs.hidden_states[-1], replay_batch['logits']) * self.args.replay_alpha
-                            
                             # We keep track of the loss at each epoch
                             if self.args.with_tracking:
                                 total_loss += loss.detach().float()
@@ -312,6 +336,17 @@ class Appr(object):
                                         agem.overwrite_grad(model_ori.model.parameters, g_tilde, self.args.grad_dims)
                                     else:
                                         agem.overwrite_grad(model_ori.model.parameters, self.args.grad_xy, self.args.grad_dims)
+                            
+                            if 'mer' in self.args.baseline:
+                                # Within batch Reptile meta-update:
+                                model_ori = accelerator.unwrap_model(model)
+                                weights_after = model_ori.state_dict()
+                                model_ori.load_state_dict(
+                                    {
+                                        name : weights_before[name] + ((weights_after[name] - weights_before[name]) * self.args.mer_beta) 
+                                        for name in weights_before
+                                    }
+                                )
 
 
                             if 'adapter_hat' in self.args.baseline   \
@@ -330,7 +365,11 @@ class Appr(object):
 
 
                             if step % self.args.gradient_accumulation_steps == 0 or step == len(train_loader) - 1:
-                                optimizer.step()
+                                if 'lamaml' in self.args.baseline:
+                                    self.meta_learner.step_and_zero_grad() 
+                                    self.fast_weights = None
+                                else:
+                                    optimizer.step()
                                 global_step += 1
                                 lr_scheduler.step()
                                 optimizer.zero_grad()
@@ -349,11 +388,21 @@ class Appr(object):
                                         if 'adapters.e' in n or 'model.e' in n:
                                             p.data = torch.clamp(p.data, -self.args.thres_emb, self.args.thres_emb)
 
-
                                 if accelerator.is_main_process:
                                     utils.log_loss(writer, scalar_value=loss.item(), global_step=global_step)
                                     if outputs.sum_loss is not None: utils.log_loss(writer, loss_name=' summerization loss', scalar_value=outputs.sum_loss.item(), global_step=global_step)
                                     if outputs.contrast_loss is not None: utils.log_loss(writer, loss_name=' contrast loss', scalar_value=outputs.contrast_loss.item(), global_step=global_step)
+                        
+                        if 'mer' in self.args.baseline:
+                            model_ori = accelerator.unwrap_model(model)
+                            after = model_ori.state_dict()
+                            # Across batch Reptile meta-update:
+                            model_ori.load_state_dict(
+                                {
+                                    name : before[name] + ((after[name] - before[name]) * self.args.mer_gamma) 
+                                    for name in before
+                                }
+                            )
 
 
                         #

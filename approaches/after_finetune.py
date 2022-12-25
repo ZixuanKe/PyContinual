@@ -59,12 +59,13 @@ def compute(self,model,train_pool_loader, self_fisher, mask_pre, accelerator):
         mask = utils.mask(model, accelerator, self.args)
         hat.compute(model, accelerator, mask_pre, mask, self.args)
 
-    elif 'derpp' in self.args.baseline or 'agem' in self.args.baseline:
+    elif 'derpp' in self.args.baseline or 'agem' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline:
         # add data to the buffer
         train_loader_replay = accelerator.prepare(train_pool_loader)
         if accelerator.is_main_process:  # only find some to keep, no training
             derpp.derpp_compute(train_loader_replay, model, self.args.buffer, self.args)
-    
+        if 'lamaml' in self.args.baseline:
+            torch.save(self.meta_learner.alpha_lr[:], os.path.join(self.args.output_dir, 'alpha_lr'))
         if 'agem' in self.args.baseline:
             torch.save(self.args.grad_dims, os.path.join(self.args.output_dir, 'grad_dims'))
             torch.save(self.args.grad_xy, os.path.join(self.args.output_dir, 'grad_xy'))
