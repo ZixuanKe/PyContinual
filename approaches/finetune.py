@@ -217,6 +217,7 @@ class Appr(object):
                 try:
                     for epoch in range(starting_epoch, self.args.num_train_epochs):
                         model.train()
+                        outputs = None
                         if 'mer' in self.args.baseline:
                             model_ori = accelerator.unwrap_model(model)
                             model_ori.zero_grad()
@@ -254,16 +255,14 @@ class Appr(object):
                                         replay_batch['cls_labels'] = replay_batch['labels']
 
                                     for key in batch.keys():
-                                        if key == 'labels': continue    # TODO: modify this when add generation baseline
+                                        if key == 'labels' and self.args.task_name in self.args.classification: continue
                                         batch[key] = torch.cat((batch[key], replay_batch[key]), dim=0)
-                                
-                                outputs = None
-                                for i in range(batch['input_ids'].shape[0]):
-                                    self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, i, is_train=True)
-                                    meta_outputs = self.meta_learner.meta_loss(self.fast_weights, batch, i, is_train=True)
-                                    if outputs is None: outputs = meta_outputs
-                                    else:
-                                        outputs.loss += meta_outputs.loss / batch['input_ids'].shape[0]
+                                    
+                                self.fast_weights = self.meta_learner.inner_update(self.fast_weights, batch, is_train=True)
+                                meta_outputs = self.meta_learner.meta_loss(self.fast_weights, batch, is_train=True)
+                                if outputs is None or (step % self.args.meta_task_size == 0): outputs = meta_outputs
+                                else:
+                                    outputs.loss += meta_outputs.loss / batch['input_ids'].shape[0]
                                     
 
                             else:
@@ -288,7 +287,9 @@ class Appr(object):
                             if self.args.with_tracking:
                                 total_loss += loss.detach().float()
                             loss = loss / self.args.gradient_accumulation_steps
-                            accelerator.backward(loss)
+
+                            if 'lamaml' not in self.args.baseline or (step + 1) % self.args.meta_task_size == 0:
+                                accelerator.backward(loss)
 
                             if accelerator.is_main_process and epoch < 1 and step < 1:
                                 for n,p in model.named_parameters():
@@ -366,15 +367,21 @@ class Appr(object):
 
                             if step % self.args.gradient_accumulation_steps == 0 or step == len(train_loader) - 1:
                                 if 'lamaml' in self.args.baseline:
-                                    self.meta_learner.step_and_zero_grad() 
-                                    self.fast_weights = None
+                                    if (step + 1) % self.args.meta_task_size == 0:
+                                        self.meta_learner.step_and_zero_grad() 
+                                        self.fast_weights = None
+                                        optimizer.zero_grad()
+                                    lr_scheduler.step()
+                                    progress_bar.update(1)
+                                    global_step += 1
+                                    completed_steps += 1
                                 else:
                                     optimizer.step()
-                                global_step += 1
-                                lr_scheduler.step()
-                                optimizer.zero_grad()
-                                progress_bar.update(1)
-                                completed_steps += 1
+                                    global_step += 1
+                                    lr_scheduler.step()
+                                    optimizer.zero_grad()
+                                    progress_bar.update(1)
+                                    completed_steps += 1
                                 progress_bar.set_description(
                                     'Train Iter (Epoch=%3d,loss=%5.3f)' % ((epoch, loss.item())))  # show the loss, mean while
 
