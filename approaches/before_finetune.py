@@ -1,3 +1,7 @@
+from collections import OrderedDict
+from networks.baselines import ewc, hat, cat, lamaml
+from networks.buffer import Buffer
+from utils import utils
 import logging
 import math
 
@@ -15,28 +19,27 @@ from transformers import (
 logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
-from utils import utils
-from networks.buffer import Buffer
-from networks.baselines import ewc, hat, cat, lamaml
-from collections import OrderedDict
+
+# before training ***********************************************************************************************
 
 
-        # before training ***********************************************************************************************
 def prepare(self, model, train_loader, dev_loader, accelerator):
 
-    #TODO: consider separate the baselines
+    # TODO: consider separate the baselines
     mask_pre = None
     mask_back = None
     self_fisher = None
     self.args.is_cat = False
 
-    #need to adapt everything to MTL. There is no separate head, so no changes are neeeded here
+    # need to adapt everything to MTL. There is no separate head, so no changes are neeeded here
     if 'ewc' in self.args.baseline:
 
         if os.path.exists(os.path.join(self.args.prev_output, 'fisher')):
-            print('load fisher matrix from ' + self.args.prev_output + ' **************')
-            self_fisher = torch.load(os.path.join(self.args.prev_output, 'fisher'), map_location=torch.device('cpu'))
-            for k,v in self_fisher.items():
+            print('load fisher matrix from ' +
+                  self.args.prev_output + ' **************')
+            self_fisher = torch.load(os.path.join(
+                self.args.prev_output, 'fisher'), map_location=torch.device('cpu'))
+            for k, v in self_fisher.items():
                 self_fisher[k] = self_fisher[k].cuda()
 
     # replay baselines TODO: use only one 'if'
@@ -44,28 +47,38 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
         if 'lamaml' in self.args.baseline:
             model_ori = accelerator.unwrap_model(model).model
             self.fast_weights = OrderedDict(model_ori.named_parameters())
-            self.meta_learner = lamaml.Learner(model_ori.config, model_ori.taskcla, self.args, model_ori)
+            self.meta_learner = lamaml.Learner(
+                model_ori.config, model_ori.taskcla, self.args, model_ori)
             if self.args.ft_task > 0:
-                saved_alpha_lr = torch.load(os.path.join(self.args.prev_output, 'alpha_lr'), map_location='cpu')
-                self.meta_learner.define_task_lr_params(saved_alpha_lr=saved_alpha_lr)
+                saved_alpha_lr = torch.load(os.path.join(
+                    self.args.prev_output, 'alpha_lr'), map_location='cpu')
+                self.meta_learner.define_task_lr_params(
+                    saved_alpha_lr=saved_alpha_lr)
             else:
                 self.meta_learner.define_task_lr_params()
             self.meta_learner.prepare(accelerator)
 
         if self.args.ft_task == 0:
-            buffer = Buffer(self.args.buffer_size_per_dataset * self.args.ntasks, accelerator.device,)
+            buffer = Buffer(self.args.buffer_size_per_dataset *
+                            self.args.ntasks, accelerator.device,)
             if 'agem' in self.args.baseline:
                 self.args.grad_dims = []
                 for param in model.model.parameters():
                     self.args.grad_dims.append(param.data.numel())
-                self.args.grad_xy = torch.Tensor(np.sum(self.args.grad_dims)).to(accelerator.device)
-                self.args.grad_er = torch.Tensor(np.sum(self.args.grad_dims)).to(accelerator.device)
+                self.args.grad_xy = torch.Tensor(
+                    np.sum(self.args.grad_dims)).to(accelerator.device)
+                self.args.grad_er = torch.Tensor(
+                    np.sum(self.args.grad_dims)).to(accelerator.device)
         else:
-            buffer = torch.load(os.path.join(self.args.prev_output, 'buffer'), map_location=accelerator.device)
+            buffer = torch.load(os.path.join(
+                self.args.prev_output, 'buffer'), map_location=accelerator.device)
             if 'agem' in self.args.baseline:
-                self.args.grad_dims = torch.load(os.path.join(self.args.prev_output, 'grad_dims'), map_location=accelerator.device)
-                self.args.grad_xy = torch.load(os.path.join(self.args.prev_output, 'grad_xy'), map_location=accelerator.device)
-                self.args.grad_er = torch.load(os.path.join(self.args.prev_output, 'grad_er'), map_location=accelerator.device)
+                self.args.grad_dims = torch.load(os.path.join(
+                    self.args.prev_output, 'grad_dims'), map_location=accelerator.device)
+                self.args.grad_xy = torch.load(os.path.join(
+                    self.args.prev_output, 'grad_xy'), map_location=accelerator.device)
+                self.args.grad_er = torch.load(os.path.join(
+                    self.args.prev_output, 'grad_er'), map_location=accelerator.device)
         self.args.buffer = buffer
 
     elif 'adapter_hat' in self.args.baseline   \
@@ -79,8 +92,10 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
         if os.path.exists(os.path.join(self.args.prev_output, 'mask_pre')):
             print('load mask matrix **************')
 
-            mask_pre = torch.load(os.path.join(self.args.prev_output, 'mask_pre'))
-            mask_back = torch.load(os.path.join(self.args.prev_output, 'mask_back'))
+            mask_pre = torch.load(os.path.join(
+                self.args.prev_output, 'mask_pre'))
+            mask_back = torch.load(os.path.join(
+                self.args.prev_output, 'mask_back'))
 
             for k, v in mask_pre.items():
                 mask_pre[k] = mask_pre[k].cuda()
@@ -88,7 +103,7 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
             for k, v in mask_back.items():
                 mask_back[k] = mask_back[k].cuda()
 
-        if 'adapter_cat' in self.args.baseline: # initialize the new adapter using the nearest adapter
+        if 'adapter_cat' in self.args.baseline:  # initialize the new adapter using the nearest adapter
 
             if self.args.eval_only:
                 if os.path.exists(os.path.join(self.args.output_dir, 'similarities')):
@@ -100,13 +115,13 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
 
             else:
 
-                if self.args.known_similarity: # this is simplu for testing
+                if self.args.known_similarity:  # this is simplu for testing
 
                     self.similarity.set_similarities([0])
                     self.similarity.set_similarities([0])
-                    self.similarity.set_similarities([0,0])
-                    self.similarity.set_similarities([0,0,0])
-                    self.similarity.set_similarities([0,0,0,0])
+                    self.similarity.set_similarities([0, 0])
+                    self.similarity.set_similarities([0, 0, 0])
+                    self.similarity.set_similarities([0, 0, 0, 0])
                     self.args.similarity = self.similarity
 
                 else:
@@ -115,22 +130,22 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
                                                   map_location=torch.device('cpu'))
                         self.similarity.similarities = similarities
 
-
                     if self.args.ft_task == 0:
                         self.similarity.set_similarities([0])
                         self.args.similarity = self.similarity
 
                     else:
-                        similarity = cat.compute(self, model, train_loader, dev_loader, accelerator)
+                        similarity = cat.compute(
+                            self, model, train_loader, dev_loader, accelerator)
 
                         self.similarity.set_similarities(similarity)
                         self.args.similarity = self.similarity
 
-            print('similarity: ',self.args.similarity.similarities)
+            print('similarity: ', self.args.similarity.similarities)
 
     elif 'l2p' in self.args.baseline:
         self.args.n_tokens = self.args.N * self.args.Lp
-    
+
     metric = utils.load_my_metric(self.args)
 
-    return self, model, train_loader, dev_loader, accelerator,metric,mask_pre,mask_back,self_fisher
+    return self, model, train_loader, dev_loader, accelerator, metric, mask_pre, mask_back, self_fisher
