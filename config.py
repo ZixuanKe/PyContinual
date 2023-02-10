@@ -340,6 +340,7 @@ def parse_args():
     parser.add_argument('--mer_beta', default=0.03, type=float, help='(default=%(default)f)')
     parser.add_argument('--mer_gamma', default=1.0, type=float, help='(default=%(default)f)')
     parser.add_argument('--grad_clip_norm', default=1.0, type=float, help='(default=%(default)f)')
+    parser.add_argument('--meta_task_size', default=3, type=float, help='(default=%(default)f)')
     args = parser.parse_args()
 
     return args
