@@ -69,18 +69,22 @@ class AdapterLayer(AdapterLayerBase):
             location_key=self.location_key,
         )
         if adapter_config is not None:
-            reduction_factor = adapter_config["reduction_factor"]
-            if isinstance(reduction_factor, Mapping):
-                if str(self.layer_idx) in reduction_factor:
-                    reduction_factor = reduction_factor[str(self.layer_idx)]
-                elif "default" in reduction_factor:
-                    reduction_factor = reduction_factor["default"]
-                else:
-                    raise KeyError(
-                        "The given reduction factor mapping does not give a default value and does not specify each "
-                        "reduction factor individually. You need to provide a default value like this: "
-                        '{"1": 16, "default": 16}'
-                    )
+
+            reduction_factor = self.args.reduction_factor
+
+            # TODO: temporary
+            # reduction_factor = adapter_config["reduction_factor"]
+            # if isinstance(reduction_factor, Mapping):
+            #     if str(self.layer_idx) in reduction_factor:
+            #         reduction_factor = reduction_factor[str(self.layer_idx)]
+            #     elif "default" in reduction_factor:
+            #         reduction_factor = reduction_factor["default"]
+            #     else:
+            #         raise KeyError(
+            #             "The given reduction factor mapping does not give a default value and does not specify each "
+            #             "reduction factor individually. You need to provide a default value like this: "
+            #             '{"1": 16, "default": 16}'
+            #         )
 
             if adapter_config.is_parallel:
                 adapter_class = ParallelAdapter

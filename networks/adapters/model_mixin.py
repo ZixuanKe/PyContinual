@@ -250,6 +250,7 @@ class ModelAdaptersMixin(PushAdapterToHubMixin, ABC):
             exception is thrown. set_active (bool, optional): Set the adapter to be the active one. By default (False),
             the adapter is added but not activated.
         """
+
         if isinstance(config, dict):
             config = AdapterConfigBase.load(config)  # ensure config is ok and up-to-date
         # In case adapter already exists and we allow overwriting, explicitly delete the existing one first

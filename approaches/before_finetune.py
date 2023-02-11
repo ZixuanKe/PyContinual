@@ -1,14 +1,9 @@
-from collections import OrderedDict
-from networks.baselines import ewc, hat, cat, lamaml
-from networks.buffer import Buffer
-from utils import utils
 import logging
 import math
 
 import numpy as np
 import os
 import torch
-from tqdm.auto import tqdm
 from transformers import (
     MODEL_MAPPING,
     AdamW,
@@ -19,13 +14,14 @@ from transformers import (
 logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
+import utils
+from collections import OrderedDict
+from networks.baselines import ewc, hat, cat, lamaml
+from networks.baselines.memory import Buffer
 
-# before training ***********************************************************************************************
+        # before training ***********************************************************************************************
+def prepare(self,model, train_loader, dev_loader, accelerator):
 
-
-def prepare(self, model, train_loader, dev_loader, accelerator):
-
-    # TODO: consider separate the baselines
     mask_pre = None
     mask_back = None
     self_fisher = None
@@ -146,6 +142,6 @@ def prepare(self, model, train_loader, dev_loader, accelerator):
     elif 'l2p' in self.args.baseline:
         self.args.n_tokens = self.args.N * self.args.Lp
 
-    metric = utils.load_my_metric(self.args)
+    metric = utils.model.load_my_metric(self.args)
 
     return self, model, train_loader, dev_loader, accelerator, metric, mask_pre, mask_back, self_fisher

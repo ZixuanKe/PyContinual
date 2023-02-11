@@ -10,18 +10,17 @@ from copy import deepcopy
 from torch import nn
 from networks.baselines.supsup import MultitaskMaskLinear
 from networks.baselines.dytox import MyRobertaForSequenceClassificationDyTox
-from networks.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
-from networks.roberta import MyRobertaForSequenceClassification,MyRobertaForTokenClassification
-from networks.bert import MyBertForSequenceClassification,MyBertForTokenClassification
+from networks.transformers.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
+from networks.transformers.roberta import MyRobertaForSequenceClassification,MyRobertaForTokenClassification
+from networks.transformers.bert import MyBertForSequenceClassification,MyBertForTokenClassification
 from networks.baselines.ldbr import MyRobertaForSequenceClassificationLDBR
 import evaluate
 from datasets import load_dataset, load_metric
-from networks.model import MyModel
+from networks.finetune.model import MyModel
 from networks.prompt.tuning import MyBartForConditionalGenerationSoftPromptTunning,MyRobertaForTokenClassificationSoftPromptTunning, MyRobertaForSequenceClassificationSoftPromptTunning
 from networks.baselines.l2p import MyRobertaForSequenceClassificationSoftL2P,MyBartForConditionalGenerationSoftL2P,MyRobertaForTokenClassificationSoftL2P
 from networks.prompt.inference import MyBartForConditionalGenerationSoftPromptInfer
 from networks.baselines.dualprompt import DualPromptBartForConditionalGeneration, DualPromptRobertaForTokenClassification, DualPromptRobertaForSequenceClassification
-from networks.baselines import cat
 
 ########################################################################################################################
 

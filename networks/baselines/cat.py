@@ -16,7 +16,7 @@ from transformers import (
 )
 from torch import nn
 from itertools import zip_longest
-from utils import utils
+import utils
 import os
 
 
@@ -78,7 +78,7 @@ def compute(self,model,train_loader,dev_loader,accelerator):
         self.args.eval_t = prev_task
         model,metric = train_model(self,prev_task,model,train_loader,dev_loader,accelerator)
         results = self.eval(model, dev_loader, metric, accelerator, eval_t=self.args.ft_task)   # use main metric
-        dev_main = utils.lookfor_main_metric(results, self.args)
+        dev_main = utils.model.lookfor_main_metric(results, self.args)
         main_transfer[cur_task, prev_task] = dev_main
 
         self.args.is_reference = False
@@ -143,6 +143,7 @@ def train_model(self,prev_task,model,train_loader,dev_loader,accelerator):
 
         # I fix the feature extractor inside bart_model.py
 
+    #TODO: please chaeck whether update the model is correct.
 
     no_decay = ["bias", "LayerNorm.weight"]
     special_lr = ['prompt', 'adapter', 'classifier']
@@ -188,7 +189,7 @@ def train_model(self,prev_task,model,train_loader,dev_loader,accelerator):
     # Prepare everything with our `accelerator`.
     optimizer, lr_scheduler = accelerator.prepare(optimizer, lr_scheduler)
 
-    metric = utils.load_my_metric(self.args)
+    metric = utils.model.load_my_metric(self.args)
 
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
     num_update_steps_per_epoch = math.ceil(len(train_loader) / self.args.gradient_accumulation_steps)
@@ -201,7 +202,7 @@ def train_model(self,prev_task,model,train_loader,dev_loader,accelerator):
     completed_steps = 0
     starting_epoch = 0
 
-    best_model = utils.get_model(model)
+    best_model = utils.model.get_model(model)
     best_main = -np.inf
     patience = self.args.patient
     global_step = 0  # This will be used by CLMOE if we choose 'auto_encoder' as the route type.
@@ -247,11 +248,11 @@ def train_model(self,prev_task,model,train_loader,dev_loader,accelerator):
 
             results = self.eval(model, dev_loader, metric, accelerator, eval_t=self.args.ft_task)
 
-            dev_main = utils.lookfor_main_metric(results, self.args)
+            dev_main = utils.model.lookfor_main_metric(results, self.args)
 
             if epoch < self.args.num_train_epochs and best_main < dev_main:  # data is too small, we need to at least run some epoch
                 best_main = dev_main
-                best_model = utils.get_model(model)
+                best_model = utils.model.get_model(model)
                 if accelerator.is_main_process: print(
                     "*Epoch {}, dev rouge1 = {:.4f}".format(epoch, dev_main))
                 patience = self.args.patient  # reset
@@ -262,6 +263,6 @@ def train_model(self,prev_task,model,train_loader,dev_loader,accelerator):
                 if patience <= 0: break
 
     if (self.args.task_name in self.args.generation or self.args.task_name in self.args.ner_datasets):
-        utils.set_model_(model, best_model)
+        utils.model.set_model_(model, best_model)
 
     return model,metric

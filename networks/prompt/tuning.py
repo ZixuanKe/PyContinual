@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
-from networks.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
-from networks.bart import shift_tokens_right
-from networks.roberta import MyRobertaForSequenceClassification, MyRobertaForTokenClassification
+from networks.transformers.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification
+from networks.transformers.bart import shift_tokens_right
+from networks.transformers.roberta import MyRobertaForSequenceClassification, MyRobertaForTokenClassification
 
 class BARTPromptTuningMixinCommon:
 
@@ -187,6 +187,8 @@ class BARTPromptTuningMixinClassification(BARTPromptTuningMixinCommon):
             task=task
         )
 
+
+
 class RobertaPromptTuningMixinCommon:
     def initialize_soft_prompt(self, n_tokens):
         if 'one' in self.args.baseline:
@@ -206,11 +208,6 @@ class RobertaPromptTuningMixinCommon:
 
     def get_soft_params(self):
         return self.prompt_embedding
-
-    def prepare_inputs_for_generation(self, input_ids, past=None, *args, **kwargs):
-        input_ids = input_ids.to(self.device)
-        # Drop 'past' to make things easier for us later
-        return super().prepare_inputs_for_generation(input_ids, None, *args, **kwargs)
 
     def _cat_prompt_embedding_to_input(self, input_ids):
         inputs_embeds = self.roberta.embeddings.word_embeddings(input_ids)
@@ -276,6 +273,8 @@ class RobertaPromptTuningMixinClassification(RobertaPromptTuningMixinCommon):
         nsp_labels=None,
     ):
 
+        #TODO: please consider prompt fusion
+
 
         if input_ids is not None:
             inputs_embeds = self._cat_prompt_embedding_to_input(input_ids)
@@ -301,6 +300,22 @@ class RobertaPromptTuningMixinClassification(RobertaPromptTuningMixinCommon):
         )
 
 
+class MyRobertaForTokenClassificationSoftPromptTunning(RobertaPromptTuningMixinClassification, MyRobertaForTokenClassification):
+    def __init__(self, config, **kwargs):
+        RobertaPromptTuningMixinClassification.__init__(self)
+        MyRobertaForTokenClassification.__init__(self, config, **kwargs)
+        self.config = config
+        self.args = kwargs['args']
+
+class MyRobertaForSequenceClassificationSoftPromptTunning(RobertaPromptTuningMixinClassification, MyRobertaForSequenceClassification):
+    def __init__(self, config, **kwargs):
+        RobertaPromptTuningMixinClassification.__init__(self)
+        MyRobertaForSequenceClassification.__init__(self, config, **kwargs)
+        self.config = config
+        self.args = kwargs['args']
+
+
+
 class MyBartForConditionalGenerationSoftPromptTunning(BARTPromptTuningMixinGeneration, MyBartForConditionalGeneration):
     def __init__(self, config, **kwargs):
         BARTPromptTuningMixinGeneration.__init__(self)
@@ -318,26 +333,5 @@ class MyBartForTokenClassificationSoftPromptTunning(BARTPromptTuningMixinClassif
     def __init__(self, config, **kwargs):
         BARTPromptTuningMixinClassification.__init__(self)
         MyBartForTokenClassification.__init__(self, config, **kwargs)
-        self.config = config
-        self.args = kwargs['args']
-
-class MyBartForSequenceClassificationSoftPromptTunning(BARTPromptTuningMixinClassification, MyBartForSequenceClassification):
-    def __init__(self, config, **kwargs):
-        BARTPromptTuningMixinClassification.__init__(self)
-        MyBartForSequenceClassification.__init__(self, config, **kwargs)
-        self.config = config
-        self.args = kwargs['args']
-
-class MyRobertaForTokenClassificationSoftPromptTunning(RobertaPromptTuningMixinClassification, MyRobertaForTokenClassification):
-    def __init__(self, config, **kwargs):
-        RobertaPromptTuningMixinClassification.__init__(self)
-        MyRobertaForTokenClassification.__init__(self, config, **kwargs)
-        self.config = config
-        self.args = kwargs['args']
-
-class MyRobertaForSequenceClassificationSoftPromptTunning(RobertaPromptTuningMixinClassification, MyRobertaForSequenceClassification):
-    def __init__(self, config, **kwargs):
-        RobertaPromptTuningMixinClassification.__init__(self)
-        MyRobertaForSequenceClassification.__init__(self, config, **kwargs)
         self.config = config
         self.args = kwargs['args']

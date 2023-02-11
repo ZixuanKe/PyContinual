@@ -5,7 +5,7 @@ from tqdm.auto import tqdm
 import torch
 import torch.distributed as dist
 import os
-from utils import utils
+import utils
 import numpy as np
 
 
@@ -29,7 +29,7 @@ def compute(model,accelerator,mask_pre,mask,args):
     # Weights mask
     mask_back = {}
     for n, p in model.named_parameters():
-        vals = utils.get_view_for(n, p, mask_pre,config, args)
+        vals = utils.model.get_view_for(n, p, mask_pre,config, args)
         if vals is not None:
             mask_back[n] = 1 - vals
 
@@ -40,10 +40,10 @@ def compute(model,accelerator,mask_pre,mask,args):
     # print('n_gpu: ',n_gpu)
     # if n_gpu > 1:
     for k, v in mask_pre.items():
-        mask_pre[k] = utils.gather_mean(mask_pre[k])
+        mask_pre[k] = utils.model.gather_mean(mask_pre[k])
 
     for k, v in mask_back.items():
-        mask_back[k] = utils.gather_mean(mask_back[k])
+        mask_back[k] = utils.model.gather_mean(mask_back[k])
 
     if accelerator.is_main_process:
         torch.save(mask_pre, mask_pre_path)

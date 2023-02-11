@@ -7,7 +7,6 @@ from transformers.activations import get_activation
 
 from transformers.adapters.configuration import AdapterConfig, AdapterFusionConfig
 from transformers.adapters.context import ForwardContext
-from networks.baselines.supsup import MultitaskMaskLinear
 from networks.plugin.plugin import Myplugin
 
 class Activation_Function_Class(nn.Module):
@@ -36,10 +35,16 @@ class AdapterDown(nn.Module):
         self.config = config
         self.args = args
 
+        if 'supsup' in args.baseline:
+            from networks.baselines.supsup import MultitaskMaskLinear
+        elif 'adapter_meta' in args.baseline:
+            from networks.meta.roberta import MultitaskMaskLinear
+
+
         self.add_layer_norm_before = config["ln_before"]
         if self.add_layer_norm_before:
             self.adapter_norm_before = nn.LayerNorm(input_size)
-        if 'supsup' in args.baseline:
+        if 'supsup' in args.baseline or 'adapter_meta' in args.baseline:
             self.linear_down = MultitaskMaskLinear(input_size, down_sample, num_tasks=args.ntasks, adapter_role='down', my_args=args)
         elif ('adapter_hat' in self.args.baseline or 'adapter_cat' in self.args.baseline or 'transformer_hat' in self.args.baseline \
                 or 'adapter_bcl' in self.args.baseline or 'adapter_ctr' in self.args.baseline \
@@ -114,8 +119,13 @@ class Adapter(nn.Module):
         if self.down_sample < 1:
             self.down_sample = 1
 
-
         if 'supsup' in args.baseline:
+            from networks.baselines.supsup import MultitaskMaskLinear
+        elif 'adapter_meta' in args.baseline:
+            from networks.meta.roberta import MultitaskMaskLinear
+
+
+        if 'supsup' in args.baseline or 'adapter_meta' in args.baseline:
             linear_up = MultitaskMaskLinear(self.down_sample, self.input_size, num_tasks=args.ntasks, adapter_role='up', my_args=args)
         elif ('adapter_hat' in self.args.baseline or 'adapter_cat' in self.args.baseline or 'transformer_hat' in self.args.baseline \
                 or 'adapter_bcl' in self.args.baseline or 'adapter_ctr' in self.args.baseline \
@@ -203,17 +213,20 @@ class Adapter(nn.Module):
 
         return hidden_states, query, residual
 
-    def forward(self, x, residual_input, layer_type):  # , residual_input=None):
+    def forward(self, x, residual_input, layer_type,down_mask=None,up_mask=None):  # , residual_input=None):
 
         if 'supsup' in self.args.baseline:
             down = self.adapter_down(x)
             up = self.adapter_up(down)
-        elif (
-                    'adapter_hat' in self.args.baseline or 'adapter_cat' in self.args.baseline or 'transformer_hat' in self.args.baseline \
+        elif ( 'adapter_hat' in self.args.baseline or 'adapter_cat' in self.args.baseline or 'transformer_hat' in self.args.baseline \
                     or 'adapter_bcl' in self.args.baseline or 'adapter_ctr' in self.args.baseline \
                     or 'adapter_classic' in self.args.baseline or 'adapter_demix' in self.args.baseline):  # BCL included HAT
             down = self.adapter_down(x,layer_type=layer_type)
             up = self.adapter_up(down,layer_type=layer_type)
+
+        elif ('softmask' in self.args.baseline or 'meta' in self.args.baseline) and down_mask is not None:
+            down = self.adapter_down(x) * down_mask
+            up = self.adapter_up(down) * up_mask
         else:
             down = self.adapter_down(x)
             up = self.adapter_up(down)

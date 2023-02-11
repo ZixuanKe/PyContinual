@@ -67,7 +67,6 @@ from networks.adapters.mixins.bert import (
 
 from networks.adapters.model_mixin import InvertibleAdaptersMixin, ModelWithHeadsAdaptersMixin
 from networks.adapters.prefix_tuning import PrefixTuningShim
-from utils import utils
 
 
 logger = logging.get_logger(__name__)
@@ -1388,7 +1387,8 @@ class MyBertForSequenceClassification(ModelWithHeadsAdaptersMixin, BertPreTraine
         return_dict=None,
         task=None,
         my_loss=None,
-        nsp_labels=None
+        only_return_output=None
+
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1409,6 +1409,8 @@ class MyBertForSequenceClassification(ModelWithHeadsAdaptersMixin, BertPreTraine
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
+
+        if only_return_output: return outputs
 
         pooled_output = outputs[1]
 
@@ -1444,7 +1446,9 @@ class MyBertForSequenceClassification(ModelWithHeadsAdaptersMixin, BertPreTraine
                 logits.append(logit)
             logits = torch.cat(logits,dim=1)
 
-
+        if my_loss is not None:
+            loss += my_loss
+            
         if not return_dict:
             output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output

@@ -57,7 +57,7 @@ from networks.adapters.mixins.bart import (
 )
 from networks.adapters.model_mixin import InvertibleAdaptersMixin, ModelWithHeadsAdaptersMixin
 from networks.adapters.prefix_tuning import PrefixTuningShim
-from utils import utils
+import utils
 
 
 
@@ -198,6 +198,7 @@ class BartAttention(nn.Module):
         # if key_value_states are provided this layer is used as a cross-attention layer
         # for the decoder
         is_cross_attention = key_value_states is not None
+
         bsz, tgt_len, _ = hidden_states.size()
 
         # get query proj
@@ -340,7 +341,8 @@ class MyBartEncoderLayer(BartEncoderLayerAdaptersMixin, nn.Module):
         attention_mask: torch.Tensor,
         layer_head_mask: torch.Tensor,
         output_attentions: bool = False,
-        teacher_encoder_hidden_state=None,
+        layer_intermediate_mask=None,
+        layer_output_mask=None,
         **kwargs
 
     ):
@@ -367,9 +369,19 @@ class MyBartEncoderLayer(BartEncoderLayerAdaptersMixin, nn.Module):
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
         hidden_states = self.attention_adapters(hidden_states, residual, 'encoder', self.self_attn_layer_norm) # TODO: seems set to ignore by adapter_transformer by default
         residual = hidden_states
-        hidden_states = self.activation_fn(self.fc1(hidden_states))
+
+        if layer_intermediate_mask is not None: # added my mask
+            hidden_states = self.activation_fn(self.fc1(hidden_states)) * layer_intermediate_mask
+        else:
+            hidden_states = self.activation_fn(self.fc1(hidden_states))
+
         hidden_states = nn.functional.dropout(hidden_states, p=self.activation_dropout, training=self.training)
-        hidden_states = self.fc2(hidden_states)
+
+        if layer_output_mask is not None: # added my mask
+            hidden_states = self.fc2(hidden_states) * layer_output_mask
+        else:
+            hidden_states = self.fc2(hidden_states)
+
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
         hidden_states = self.output_adapters(hidden_states, residual, 'encoder' , self.final_layer_norm)
 
@@ -451,7 +463,8 @@ class MyBartDecoderLayer(BartDecoderLayerAdaptersMixin, nn.Module):
         past_key_value: Optional[Tuple[torch.Tensor]] = None,
         output_attentions: Optional[bool] = False,
         use_cache: Optional[bool] = True,
-        teacher_decoder_hidden_state=None,
+        layer_decoder_intermediate_mask=None,
+        layer_decoder_output_mask=None,
         **kwargs
     ):
         """
@@ -513,9 +526,20 @@ class MyBartDecoderLayer(BartDecoderLayerAdaptersMixin, nn.Module):
 
         # Fully Connected
         residual = hidden_states
-        hidden_states = self.activation_fn(self.fc1(hidden_states))
+
+        if layer_decoder_intermediate_mask is not None:
+            hidden_states = self.activation_fn(self.fc1(hidden_states)) * layer_decoder_intermediate_mask
+
+        else:
+            hidden_states = self.activation_fn(self.fc1(hidden_states))
+
         hidden_states = nn.functional.dropout(hidden_states, p=self.activation_dropout, training=self.training)
-        hidden_states = self.fc2(hidden_states)
+
+        if layer_decoder_output_mask is not None:
+            hidden_states = self.fc2(hidden_states) * layer_decoder_output_mask
+        else:
+            hidden_states = self.fc2(hidden_states)
+
         hidden_states = nn.functional.dropout(hidden_states, p=self.dropout, training=self.training)
         hidden_states = self.output_adapters(hidden_states, residual,'decoder', self.final_layer_norm)
 
@@ -775,7 +799,8 @@ class MyBartEncoder(InvertibleAdaptersMixin, BartPretrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        teacher_encoder_hidden_states=None,
+        output_mask=None,
+        intermediate_mask=None,
         **kwargs
     ):
         r"""
@@ -880,25 +905,15 @@ class MyBartEncoder(InvertibleAdaptersMixin, BartPretrainedModel):
                         (head_mask[idx] if head_mask is not None else None),
                     )
                 else:
-
-                    if self.args.teacher_encoder_hidden_states is not None:
-                        layer_outputs = encoder_layer(
-                            hidden_states,
-                            attention_mask,
-                            layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                            output_attentions=output_attentions,
-                            teacher_encoder_hidden_state = self.args.teacher_encoder_hidden_states[idx],
-                            **kwargs
-                        )
-
-                    else:
-                        layer_outputs = encoder_layer(
-                            hidden_states,
-                            attention_mask,
-                            layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                            output_attentions=output_attentions,
-                            **kwargs
-                        )
+                    layer_outputs = encoder_layer(
+                        hidden_states,
+                        attention_mask,
+                        layer_head_mask=(head_mask[idx] if head_mask is not None else None),
+                        layer_output_mask=(output_mask[idx] if output_mask is not None else None),
+                        layer_intermediate_mask = (intermediate_mask[idx] if intermediate_mask is not None else None),
+                        output_attentions=output_attentions,
+                        **kwargs
+                    )
 
                 hidden_states = layer_outputs[0]
                 (attention_mask,) = adjust_tensors_for_parallel(hidden_states, attention_mask)
@@ -989,7 +1004,8 @@ class MyBartDecoder(BartPretrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        teacher_decoder_hidden_states=None,
+        decoder_output_mask=None,
+        decoder_intermediate_mask=None,
         **kwargs
     ):
         r"""
@@ -1148,38 +1164,25 @@ class MyBartDecoder(BartPretrainedModel):
                     None,
                 )
             else:
-                if self.args.teacher_decoder_hidden_states is not None:
-                    layer_outputs = decoder_layer(
-                        hidden_states,
-                        attention_mask=attention_mask,
-                        encoder_hidden_states=encoder_hidden_states,
-                        encoder_attention_mask=encoder_attention_mask,
-                        layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                        cross_attn_layer_head_mask=(
-                            cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
-                        ),
-                        past_key_value=past_key_value,
-                        output_attentions=output_attentions,
-                        use_cache=use_cache,
-                        teacher_decoder_hidden_state=self.args.teacher_decoder_hidden_states[idx],
-                        **kwargs
-                    )
+                layer_outputs = decoder_layer(
+                    hidden_states,
+                    attention_mask=attention_mask,
+                    encoder_hidden_states=encoder_hidden_states,
+                    encoder_attention_mask=encoder_attention_mask,
+                    layer_head_mask=(head_mask[idx] if head_mask is not None else None),
+                    cross_attn_layer_head_mask=(
+                        cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
+                    ),
+                    layer_decoder_intermediate_mask=(decoder_intermediate_mask[idx] if decoder_intermediate_mask is not None else None),
+                    layer_decoder_output_mask=(decoder_output_mask[idx] if decoder_output_mask is not None else None),
+                    decoder_output_mask=None,
+                    decoder_intermediate_mask=None,
 
-                else:
-                    layer_outputs = decoder_layer(
-                        hidden_states,
-                        attention_mask=attention_mask,
-                        encoder_hidden_states=encoder_hidden_states,
-                        encoder_attention_mask=encoder_attention_mask,
-                        layer_head_mask=(head_mask[idx] if head_mask is not None else None),
-                        cross_attn_layer_head_mask=(
-                            cross_attn_head_mask[idx] if cross_attn_head_mask is not None else None
-                        ),
-                        past_key_value=past_key_value,
-                        output_attentions=output_attentions,
-                        use_cache=use_cache,
-                        **kwargs
-                    )
+                    past_key_value=past_key_value,
+                    output_attentions=output_attentions,
+                    use_cache=use_cache,
+                    **kwargs
+                )
             hidden_states = layer_outputs[0]
             (attention_mask,) = adjust_tensors_for_parallel(hidden_states, attention_mask)
 
@@ -1269,6 +1272,10 @@ class MyBartModel(BartModelAdaptersMixin, BartPretrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        output_mask=None,
+        intermediate_mask=None,
+        decoder_output_mask=None,
+        decoder_intermediate_mask=None,
         **kwargs
     ):
 
@@ -1302,6 +1309,8 @@ class MyBartModel(BartModelAdaptersMixin, BartPretrainedModel):
                 output_attentions=output_attentions,
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
+                output_mask=output_mask,
+                intermediate_mask=intermediate_mask,
                 **kwargs
             )
         # If the user passed a tuple for encoder_outputs, we wrap it in a BaseModelOutput when return_dict=True
@@ -1330,6 +1339,8 @@ class MyBartModel(BartModelAdaptersMixin, BartPretrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            decoder_output_mask=decoder_output_mask,
+            decoder_intermediate_mask=decoder_intermediate_mask,
             **kwargs
         )
 
@@ -1385,7 +1396,7 @@ class MyBartForConditionalGeneration(ModelWithHeadsAdaptersMixin, BartPretrained
             nhid = 1024
             n_head = 5
             self.q1 = torch.nn.Embedding(self.args.ntasks, nhid)
-            self.cat_encoder = utils.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
+            self.cat_encoder = utils.model.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
             self.relu=torch.nn.ReLU()
 
 
@@ -1450,6 +1461,7 @@ class MyBartForConditionalGeneration(ModelWithHeadsAdaptersMixin, BartPretrained
 
         Returns:
         """
+
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if labels is not None:
@@ -1715,7 +1727,7 @@ class MyBartForSequenceClassification(ModelWithHeadsAdaptersMixin, BartPretraine
             nhid = 1024
             n_head = 5
             self.q1 = torch.nn.Embedding(self.args.ntasks, nhid)
-            self.encoder = utils.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
+            self.encoder = utils.model.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
             self.relu=torch.nn.ReLU()
 
     @add_start_docstrings_to_model_forward(BART_INPUTS_DOCSTRING)
@@ -1743,8 +1755,7 @@ class MyBartForSequenceClassification(ModelWithHeadsAdaptersMixin, BartPretraine
         output_hidden_states=None,
         return_dict=None,
         task=None,
-        my_loss = None,
-        nsp_labels=None
+        my_loss = None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1978,7 +1989,7 @@ class MyBartForTokenClassification(ModelWithHeadsAdaptersMixin, BartPretrainedMo
             nhid = 1024
             n_head = 5
             self.q1 = torch.nn.Embedding(self.args.ntasks, nhid)
-            self.encoder = utils.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
+            self.encoder = utils.model.EncoderLayer(n_head, nhid, nhid, int(nhid / n_head), int(nhid / n_head))
             self.relu=torch.nn.ReLU()
 
 
@@ -2016,8 +2027,7 @@ class MyBartForTokenClassification(ModelWithHeadsAdaptersMixin, BartPretrainedMo
         output_hidden_states=None,
         return_dict=None,
         my_loss=None,
-        task=None,
-        nsp_labels=None,
+        task=None
     ):
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):

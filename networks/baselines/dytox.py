@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import json
-from networks.roberta import MyRobertaForSequenceClassification
+from networks.transformers.roberta import MyRobertaForSequenceClassification
 from transformers.modeling_outputs import SequenceClassifierOutput
 
 class RobertaClassificationHeadDyTox(nn.Module):

@@ -1,4 +1,4 @@
-from networks.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification,MyBartEncoder
+from networks.transformers.bart import MyBartForConditionalGeneration,MyBartForSequenceClassification,MyBartForTokenClassification,MyBartEncoder
 import torch
 from transformers.models.bart.configuration_bart import BartConfig
 from torch import nn

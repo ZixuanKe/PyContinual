@@ -1,8 +1,15 @@
 from networks.baselines import supsup
-from networks.baselines import ewc, hat, ldbr
-import torch
+from networks.baselines import ewc, hat
 
-def run_forward(input_ids,attention_mask,task,cls_labels,my_model,self_fisher,masks=None, mask_pre=None, nsp_labels=None):
+
+def run_forward(input_ids,attention_mask,task,cls_labels,my_model,self_fisher,masks=None, mask_pre=None,
+                inputs_embeds=None,
+                head_mask=None,
+                only_return_output=False,
+                ):
+        hidden_states= None
+        loss = None
+        logits = None
 
         if 'supsup' in my_model.args.baseline:
             if 'mtl' in my_model.args.baseline: # these are only useful for supsup
@@ -23,24 +30,28 @@ def run_forward(input_ids,attention_mask,task,cls_labels,my_model,self_fisher,ma
                     supsup.set_model_specific_task(my_model, task)  # in case nothing is used
 
         else:
-            if my_model.args.is_reference:
-                outputs = my_model.teacher(input_ids=input_ids, labels=cls_labels, attention_mask=attention_mask, output_hidden_states=True, task=task, nsp_labels=nsp_labels)
-            else:
-                outputs = my_model.model(input_ids=input_ids, labels=cls_labels, attention_mask=attention_mask, output_hidden_states=True, task=task, nsp_labels=nsp_labels)
 
-            loss = outputs.loss
-            logits = outputs.logits
-            hidden_states = outputs.hidden_states
+            if my_model.args.is_reference:
+                outputs = my_model.teacher(input_ids=input_ids, inputs_embeds=inputs_embeds,labels=cls_labels,attention_mask=attention_mask,
+                                           head_mask=head_mask,
+                                           output_hidden_states=True,task=task,only_return_output=only_return_output)
+            else:
+                outputs = my_model.model(input_ids=input_ids, inputs_embeds=inputs_embeds,labels=cls_labels,attention_mask=attention_mask,
+                                         head_mask=head_mask,
+                                         output_hidden_states=True,task=task,only_return_output=only_return_output
+                                         )
+
+            if only_return_output:
+                hidden_states = outputs.hidden_states
+            else:
+                loss = outputs.loss
+                logits = outputs.logits
+                hidden_states = outputs.hidden_states
 
         if 'ewc' in my_model.args.baseline and my_model.training and self_fisher is not None:  # only if we are training
 
             loss += ewc.loss_compute(my_model,self_fisher)
 
-        elif 'ldbr' in my_model.args.baseline and my_model.training and my_model.args.ft_task > 0:
-            
-            with torch.no_grad():
-                teacher_outputs = my_model.teacher(input_ids=input_ids, labels=cls_labels, attention_mask=attention_mask, output_hidden_states=True, task=task, nsp_labels=nsp_labels)
-            loss += ldbr.regularization(outputs, teacher_outputs)
 
         elif ('adapter_hat' in my_model.args.baseline or 'adapter_cat' in my_model.args.baseline
                 or 'adapter_bcl' in my_model.args.baseline

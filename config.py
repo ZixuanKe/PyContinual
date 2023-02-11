@@ -220,8 +220,8 @@ def parse_args():
     parser.add_argument('--thres_emb',default=6,type=int,required=False,help='(default=%(default)d)')
     parser.add_argument('--lamb',type=float,required=False,help='(default=%(default)d)')
     parser.add_argument("--base_dir", default='/hdd_3/zke4',type=str, help="task id")
-    parser.add_argument("--eval_checkpoint",action="store_true")
     parser.add_argument("--no_repeat_ngram_size", type=int, help="task id")
+
     parser.add_argument(
         "--val_max_target_length",
         type=int,
@@ -276,13 +276,11 @@ def parse_args():
     parser.add_argument('--share_lr', type=float)
     parser.add_argument('--patient', default=5, type=int)
     parser.add_argument('--warmup_ratio',  type=float)
-    parser.add_argument('--dataset_type', default='full', type=str)
     parser.add_argument('--prompt_position', default='front', type=str)
     parser.add_argument('--mixed_precision',type=str)
     parser.add_argument('--fp16', action='store_true')
     parser.add_argument('--lamb_m', default=1, type=float)
     parser.add_argument('--supsup_sparsity', default=0.9, type=float)
-    parser.add_argument('--reduction_factor', default=64, type=float)
     parser.add_argument('--teacher_decoder_hidden_states', type=list)
     parser.add_argument('--teacher_encoder_hidden_states', type=list)
     # parser.add_argument("--local_rank", type=int, default=0)
@@ -292,14 +290,9 @@ def parse_args():
         action="store_true",
         help="Whether to enable experiment trackers for logging.",
     )
-    parser.add_argument('--threshold', type=float)
+    parser.add_argument('--threshold', default=0.5, type=float)
     parser.add_argument('--sample_num_per_class',  type=int)
-    parser.add_argument(
-        "--per_device_train_pool_batch_size",
-        default=8,
-        type=int,
-        help="Batch size (per device) for the training dataloader.",
-    )
+
     parser.add_argument(
         "--only_eval_current_task",
         action="store_true",
@@ -323,24 +316,21 @@ def parse_args():
         action="store_true",
         help="Indication whether entity level metrics are to be returner.",
     )
+    parser.add_argument('--softmask_compute', type=str,help='used in soft masking, decide when and how to use the softmask')
+    parser.add_argument('--replay_sample_per_task', default=20, type=int,help='how many samples replay per task (for generation task)')
+    parser.add_argument('--replay_sample_per_class', default=20, type=int,help='how many samples replay per class (for classification task)')
+    parser.add_argument('--infer_epoch', default=20, type=str,help='how many samples replay per task')
+
+    parser.add_argument('--beta', type=float, default=1.0,
+                        help='beta learning rate parameter') # exploration factor in roe
+    parser.add_argument('--gamma', type=float, default=1.0,
+                        help='gamma learning rate parameter') #gating net lr in roe
     parser.add_argument(
-        '--buffer_size_per_dataset',
-        type=int,
-        default=50,
-        help="buffer size for each dataset",
+        "--mlm_probability", type=float, default=0.15, help="Ratio of tokens to mask for masked language modeling loss"
     )
     parser.add_argument(
-        '--replay_freq',
-        type=int,
-        default=1,
-        help='replay frequency.'
+        "--reduction_factor", type=float, default=16, help="Ratio of tokens to mask for masked language modeling loss"
     )
-    parser.add_argument('--replay_beta', default=0.03, type=float, help='(default=%(default)f)')
-    parser.add_argument('--replay_alpha', default=0.01, type=float, help='(default=%(default)f)')
-    parser.add_argument('--mer_beta', default=0.03, type=float, help='(default=%(default)f)')
-    parser.add_argument('--mer_gamma', default=1.0, type=float, help='(default=%(default)f)')
-    parser.add_argument('--grad_clip_norm', default=1.0, type=float, help='(default=%(default)f)')
-    parser.add_argument('--meta_task_size', default=3, type=float, help='(default=%(default)f)')
     args = parser.parse_args()
 
     return args

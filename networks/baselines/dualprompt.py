@@ -1,8 +1,8 @@
 from base64 import encode
 from turtle import forward
 import random
-from networks.bart import MyBartEncoder, MyBartEncoderLayer, _expand_mask, MyBartDecoder, MyBartModel, shift_tokens_right, MyOutput, MyBartForConditionalGeneration
-from networks.roberta import MyRobertaLayer, RobertaPreTrainedModel, BertModelAdaptersMixin, RobertaEmbeddings, RobertaPooler, ModelWithHeadsAdaptersMixin, RobertaClassificationHead
+from networks.transformers.bart import MyBartEncoder, MyBartEncoderLayer, _expand_mask, MyBartDecoder, MyBartModel, shift_tokens_right, MyOutput, MyBartForConditionalGeneration
+from networks.transformers.roberta import MyRobertaLayer, RobertaPreTrainedModel, BertModelAdaptersMixin, RobertaEmbeddings, RobertaPooler, ModelWithHeadsAdaptersMixin, RobertaClassificationHead
 import torch
 import torch.nn as nn
 from utils import utils

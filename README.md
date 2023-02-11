@@ -14,7 +14,7 @@ We are developing v1.0.0, it improves v0.0 in the followings aspects:
 ## TODOs
 We are still working on immigrate v0.0.0 to v1.0.0. At this moment, there are still some TODOs **(PR welcomed)**
 
-* At this moment, it supports only the following baselines: NCL, ONE, EWC, HAT, B-CL, CTR, CAT, [SupSup](https://arxiv.org/abs/2006.14769), [L2P](https://arxiv.org/abs/2112.08654) 
+* At this moment, it supports the following baselines: NCL, ONE, EWC, HAT, B-CL, CTR, CAT, [SupSup](https://arxiv.org/abs/2006.14769), [L2P](https://arxiv.org/abs/2112.08654), [DER++](https://arxiv.org/abs/2004.07211), [DyTox](https://arxiv.org/abs/2111.11326), [LA-MAML](https://arxiv.org/abs/2007.13904), [MER](https://arxiv.org/abs/1810.11910), [LDBR](https://arxiv.org/abs/2104.05489), DualPrompt, A-GEM
 * At this moment, it supports only the Task-incremental scenario (task ID is given in both training and testing)
 
 ## Architecture
@@ -74,8 +74,7 @@ Above shows a typical command to run PyContinual v1.0.0 Some of the arguments ar
   - `baseline`: a string that contains the baseline names, including 
     - one, ncl, prompt_one, prompt_ncl, adapter_one, adapter_ncl, mtl, comb, ewc
     - adapter_bcl, adapter_ctr, adapter_hat, adapter_cat
-    - l2p
-    - supsup_ggg
+    - l2p, supsup, derpp, dytox, lamaml, mer, ldbr, dualprompt, agem
   - `base_dir`: you need to make sure your dataset is in this directory 
     
 If you have questions about what papers the baseline systems refer to or how to download the data. Please check the [README in Main Branch](https://github.com/ZixuanKe/PyContinual/v0.0.0)

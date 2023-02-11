@@ -1,13 +1,19 @@
 from networks.baselines import supsup
 import torch
 from networks.baselines import ewc, hat
+import utils
 
 
 
 
 
 
-def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=None, mask_pre=None,):
+def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=None, mask_pre=None,
+                inputs_embeds=None,
+                prune_model=None,prune_loss=None,head_mask=None,cross_attn_head_mask=None,output_mask=None, # all for the softmask
+                intermediate_mask=None,decoder_head_mask=None,decoder_output_mask=None, decoder_intermediate_mask=None,
+
+                ):
 
     if not my_model.training:  # must be if 'l2p' in my_model.args.baseline
         #TODO: Pool is not training, but why???
@@ -34,7 +40,7 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
 
 
-        return None,None,None
+        return None,None
 
     # TODO: bellow for training -------------------------------------
 
@@ -52,16 +58,57 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
             supsup.set_model_specific_task(my_model, task)  # in case nothing is used
 
     else:
-        if my_model.args.is_reference:
-            outputs = my_model.teacher(input_ids=input_ids, labels=labels, attention_mask=attention_mask,
-                                 output_hidden_states=True)
-        else:
-            outputs = my_model.model(input_ids=input_ids, labels=labels, attention_mask=attention_mask,
+        if 'cat' in my_model.args.baseline and my_model.args.is_reference: # for CAT
+            outputs = my_model.teacher(input_ids=input_ids, inputs_embeds=inputs_embeds,labels=labels, attention_mask=attention_mask,
                                  output_hidden_states=True)
 
-        loss = outputs.loss
-        logits = outputs.logits
-        hidden_states = outputs.encoder_hidden_states    # TODO: to consistent with classification
+            loss = outputs.loss
+            logits = outputs.logits
+
+        elif 'softmask' in my_model.args.baseline and prune_model and 'distill' in prune_loss:
+            #TODO: use the output of decoder to conduct distillation, move to here
+            # we also need to add some mask
+            kd_loss = utils.model.DistillKL(1)
+
+            # inputs_ids_dup = input_ids.repeat(2, 1)
+            # labels_dup = labels.repeat(2, 1)
+            # attention_mask_dup = attention_mask.repeat(2, 1)
+
+            outputs = my_model.model(input_ids=input_ids, inputs_embeds=inputs_embeds,labels=labels, attention_mask=attention_mask,
+                                     head_mask=head_mask,
+                                     cross_attn_head_mask=cross_attn_head_mask,
+                                     output_mask=output_mask,
+                                     intermediate_mask=intermediate_mask,
+                                     decoder_head_mask=decoder_head_mask,
+                                     decoder_output_mask=decoder_output_mask,
+                                     decoder_intermediate_mask=decoder_intermediate_mask,
+                                     output_hidden_states=True, output_attentions=True)
+
+            teacher_outputs = my_model.teacher(input_ids=input_ids, labels=labels, attention_mask=attention_mask,
+                                     output_hidden_states=True, output_attentions=True)
+
+            # logits = outputs.logits.view(input_ids.size(0), 2, -1, 50265)
+            # logits = outputs.decoder_hidden_states[-1].view(input_ids.size(0), 2, -1, 768)
+
+            # z1 = logits[:, 0]
+            # z2 = logits[:, 1]
+
+            # # print('outputs.logits: ',outputs.logits.size())
+            # # print('teacher_outputs.logits: ',teacher_outputs.logits.size())
+            #
+            logits = None
+            loss = kd_loss(teacher_outputs.logits, outputs.logits)  # no need for mean
+            # loss = kd_loss(z1, z2)  # no need for mean
+            # loss = outputs.loss
+            # TODO: NAN if no teacher
+
+
+        else:
+            outputs = my_model.model(input_ids=input_ids, inputs_embeds=inputs_embeds,labels=labels, attention_mask=attention_mask,
+                                 output_hidden_states=True)
+
+            loss = outputs.loss
+            logits = outputs.logits
 
 
     if 'ewc' in my_model.args.baseline and my_model.training and self_fisher is not None:
@@ -75,4 +122,4 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
         loss += hat.loss_compute(masks, mask_pre, my_model.args)
 
-    return loss, logits, hidden_states
+    return loss, logits

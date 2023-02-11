@@ -14,6 +14,9 @@ import re
 import json
 from collections import defaultdict
 from tqdm import tqdm
+import utils
+from collections import Counter
+
 summarization_name_mapping = {
     "amazon_reviews_multi": ("review_body", "review_title"),
     "big_patent": ("description", "abstract"),
@@ -125,7 +128,7 @@ def get_dataset(accelerator, logger, args):
                     sentence = tmp_data[dt]['sentence']
                     term = tmp_data[dt]['term']
                     cls_labels = label2idx[tmp_data[dt]['polarity']]
-                    datasets[ds]['source'].append(sentence + ' ' + args.tokenizer.sep_token + ' ' + term)
+                    datasets[ds]['source'].append(sentence + args.tokenizer.sep_token + term)
                     datasets[ds]['target'].append(label)
                     datasets[ds]['task'].append(t)
                     datasets[ds]['cls_labels'].append(cls_labels)
@@ -139,13 +142,13 @@ def get_dataset(accelerator, logger, args):
                 'test': Dataset.from_dict(datasets["test"]),
             })
 
-        elif dataset_name in args.five_large_datasets:
+        elif dataset_name in args.ccd_datasets:
             path_dict = {'yahoo': args.base_dir +'/data_cpt/yahoo_answers_csv/',
                          'yelp': args.base_dir + '/data_cpt/yelp_review_polarity_csv/',
                          'amazon': args.base_dir + '/data_cpt/amazon_review_polarity_csv/',
                          'dbpedia': args.base_dir + '/data_cpt/dbpedia_csv/',
                          'agnews': args.base_dir + '/data_cpt/ag_news_csv/'}
-            n_class_dict = {'yahoo': 10, 'yelp': 2, 'amazon': 2, 'dbpedia': 14, 'agnews': 4}
+            n_class_dict = {'yahoo': 10, 'yelp': 2, 'amazon': 2, 'dbpedia': 14, 'agnews': 4} #32
 
             # Others
 
@@ -200,8 +203,6 @@ def get_dataset(accelerator, logger, args):
                         datasets[ds]['task'].append(t)
                         instance_num+= 1
 
-                        # if args.sample_cap is not None and instance_num > args.sample_cap:
-                        #     break # I don't want to have too many instances
 
             print('datasets["train"]: ',len(datasets["train"]['task']))
             print('datasets["test"]: ',len(datasets["test"]['task']))
@@ -224,28 +225,61 @@ def get_dataset(accelerator, logger, args):
 
 
                 json_path = os.path.join(args.base_dir + '/data_ner/'+dataset_name,ds+'.jsonl')
+                num_class = len(utils.data.label_list_dict[dataset_name])
+
                 with jsonlines.open(json_path,'r') as f_reader:
                     source_col_name = "tokens"
                     target_col_name = "labels"
 
-                    instance_num = 0
-                    for f in f_reader:
-                        datasets[ds]['source'].append(f[source_col_name])
-                        datasets[ds]['target'].append(f[target_col_name])
-                        datasets[ds]['cls_labels'].append(f[target_col_name])
-                        datasets[ds]['task'].append(t)
-                        instance_num+= 1
 
-                        if args.sample_cap is not None and instance_num > args.sample_cap and ds=='train': # very unstable when cutting the test
-                            break # I don't want to have too many instances
+                    if args.sample_cap is None:
+                        if ds == 'train':  # very unstable when cutting the test
+                            class_count = {c: 0 for c in utils.data.label_list_dict[dataset_name]}
+                            for f in f_reader:
+                                cur_label = f[target_col_name]
+                                for k, v in class_count.items():
+                                    if v <= args.sample_num_per_class and k in cur_label:
+                                        datasets[ds]['source'].append(f[source_col_name])
+                                        datasets[ds]['target'].append(f[target_col_name])
+                                        datasets[ds]['cls_labels'].append(f[target_col_name])
+                                        datasets[ds]['task'].append(t)
+                                        class_count[k] += 1
 
-            taskcla.append((t, len(set(
-                [y for x in datasets['train']['cls_labels'] for y in x]
+                        else:
+                            for f in f_reader:
+                                datasets[ds]['source'].append(f[source_col_name])
+                                datasets[ds]['target'].append(f[target_col_name])
+                                datasets[ds]['cls_labels'].append(f[target_col_name])
+                                datasets[ds]['task'].append(t)
 
-            ))))
+
+                    else: # 2 ways to cap
+                        instance_num = 0
+                        for f in f_reader:
+                            datasets[ds]['source'].append(f[source_col_name])
+                            datasets[ds]['target'].append(f[target_col_name])
+                            datasets[ds]['cls_labels'].append(f[target_col_name])
+                            datasets[ds]['task'].append(t)
+                            instance_num += 1
+
+                            if args.sample_cap is not None and instance_num > args.sample_cap and ds == 'train':  # very unstable when cutting the test
+                                break  # I don't want to have too many instances
+
+
+
+            if args.sample_cap is None:
+                print('class_count: ', class_count)
+                taskcla.append((t, num_class))
+            else:
+                taskcla.append((t, len(set(
+                    [y for x in datasets['train']['cls_labels'] for y in x]
+                ))))
+                # some entities may be missing
 
             print('datasets["train"]: ',len(datasets["train"]['task']))
             print('datasets["test"]: ',len(datasets["test"]['task']))
+            print('taskcla: ',taskcla)
+
 
             raw_datasets = DatasetDict({
                 'train': Dataset.from_dict(datasets["train"]),
@@ -254,7 +288,8 @@ def get_dataset(accelerator, logger, args):
             })
 
 
-        else:
+        elif dataset_name in args.summerization_datasets:
+            #summerization
             datasets = {}
             for ds in ['train', 'test', 'validation']:
                 if ds == 'validation':
@@ -277,16 +312,11 @@ def get_dataset(accelerator, logger, args):
                         target_col_name = 'summary'
                         source_col_name = 'document'
 
-                    instance_num = 0
                     for f in f_reader:
                         datasets[ds]['source'].append(f[source_col_name])
                         datasets[ds]['target'].append(f[target_col_name])
                         datasets[ds]['task'].append(t)
-                        instance_num+= 1
-                        # if dataset_name == 'qmsum' and instance_num > 200:
-                        #     break # I don't want to have too many instances
-                        # if args.sample_cap is not None and instance_num > args.sample_cap:
-                        #     break # I don't want to have too many instances
+
 
 
             print('datasets["train"]: ',len(datasets["train"]['task']))
