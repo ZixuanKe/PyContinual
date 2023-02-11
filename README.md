@@ -5,7 +5,7 @@
 ## Introduction
 We are developing v1.0.0, it improves v0.0 in the followings aspects:
 
-* Improve the readability. We removed most of the unnecessary and duplicated code. We use some more recent packages (Accelerate, Adapter-transformer, Transformer) to help achieve this.  
+* Improve the **readability**. We removed most of the unnecessary and duplicated code. We use some more recent packages (Accelerate, Adapter-transformer, Transformer) to help achieve this.  
 * We focused on **Transformer-based** CL method. More type of NLP tasks are supported. It currently supports **classification** (ASC, CCD), **extraction** (NER) and **generation** (summerization, dialogue response)
 * More underlying LMs are supported. It currently supports **BERT, RoBERTa and BART**
 * More recent NLP techniques are supported. It currently supports **adapter and (soft-)prompt**.
