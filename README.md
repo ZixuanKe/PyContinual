@@ -17,9 +17,11 @@
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 ## News
-**[11/24/2022]** Our latest survey on continual learning of NLP tasks is now in [arkiv](https://arxiv.org/abs/2211.12701). Take a look if you are interested in CL and NLP.  
-**[10/11/2022]** If you are interested in continual learning on pre-training/post-training of language models, check our [latest paper](https://arxiv.org/abs/2210.05549) in EMNLP 2022 and the accompany [code](https://github.com/UIC-Liu-Lab/CPT)!   
-**[10/03/2022]** If you are interested in more Transformer-based baselines, more NLP tasks (extraction and generation), more LMs (RoBERTa, BART) and more efficient training (fp16, multi-node), check our [developing branch](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
+
+[comment]: <> (**[11/24/2022]** Our latest survey on continual learning of NLP tasks is now in [arkiv]&#40;https://arxiv.org/abs/2211.12701&#41;. Take a look if you are interested in CL and NLP.  )
+**[Jan. 2023]** Another work on **continual learning of LMs** is now accepted at [**ICLR23**](https://arxiv.org/abs/2302.03241)  
+**[Oct. 2022]** If you are interested in **continual learning of language models**, check our [**EMNLP22** paper](https://arxiv.org/abs/2210.05549) and the [code](https://github.com/UIC-Liu-Lab/CPT)!   
+**[Oct. 2022]** If you are interested in more baselines, tasks (extraction and generation), LMs (RoBERTa, BART) and efficient training (fp16, multi-node), check our [**developing branch**](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
 
 ## Easy to Use
 
