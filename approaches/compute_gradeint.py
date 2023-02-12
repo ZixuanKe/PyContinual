@@ -55,7 +55,7 @@ def compute(self,model,loss,mask_back,weights_before,epoch,batch,step,accelerato
                 p.grad.data *= mask_back[n]
             elif n in self.tsv_para and p.grad is not None and 'hat' not in self.args.baseline:
                 # open for general
-                p.grad.data *= utils.get_view_for_tsv(
+                p.grad.data *= utils.model.get_view_for_tsv(
                     n, model_ori, self.args)
             # elif 'adapter_cat' in self.args.baseline: #TODO: to open the mask, utils.mask already consder it
             #     p.grad.data *= utils.get_similar_mask(self.args.similarity, model, accelerator, self.args)

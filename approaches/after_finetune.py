@@ -50,7 +50,7 @@ def compute(self,model,train_pool_loader, self_fisher, mask_pre, accelerator):
             or 'adapter_ctr' in self.args.baseline \
             or 'adapter_classic' in self.args.baseline:
         self.args.s = self.args.smax
-        mask = utils.mask(model, accelerator, self.args)
+        mask = utils.model.mask(model, accelerator, self.args)
         hat.compute(model, accelerator, mask_pre, mask, self.args)
 
     elif 'derpp' in self.args.baseline or 'agem' in self.args.baseline or 'mer' in self.args.baseline or 'lamaml' in self.args.baseline:

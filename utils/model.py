@@ -399,7 +399,7 @@ def prepare_sequence_finetune(args):
         #     args.num_train_epochs = 100
 
         if 'adapter_ctr' in args.baseline:
-            args.per_device_train_batch_size = 10
+            args.per_device_train_batch_size = 16
         else:
             args.per_device_train_batch_size = 32
         args.per_device_eval_batch_size = 32
