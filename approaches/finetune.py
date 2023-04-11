@@ -112,7 +112,7 @@ class Appr(object):
                 shutil.rmtree(tensorboard_file)
             writer = utils.model.setup_writer(tensorboard_file)
 
-            #TODO: remove old output
+            # remove old output
             # delete previous model
             for saved_output_dir in self.args.saved_output_dir[:-2 ]:  # we need -2 so that we can load model
                 if os.path.isdir(saved_output_dir):
@@ -226,7 +226,7 @@ class Appr(object):
             results = self.eval(model, test_loader, metric, accelerator, eval_t, pred_file, target_file)
             # micro_f1, macro_f1, accuracy, total_loss / total_num
 
-            #TODO: separate bleu and F1 for different datasets
+            #separate bleu and F1 for different datasets
 
             if accelerator.is_main_process:
                 utils.model.write_result(results,eval_t,self.args)

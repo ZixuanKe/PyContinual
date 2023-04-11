@@ -12,11 +12,14 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
                 inputs_embeds=None,
                 prune_model=None,prune_loss=None,head_mask=None,cross_attn_head_mask=None,output_mask=None, # all for the softmask
                 intermediate_mask=None,decoder_head_mask=None,decoder_output_mask=None, decoder_intermediate_mask=None,
-
+                only_return_output=None
                 ):
 
-    if not my_model.training:  # must be if 'l2p' in my_model.args.baseline
-        #TODO: Pool is not training, but why???
+    if not my_model.training:
+        # we need to set supsup in evaluation
+
+
+
         expanded_return_idx = (
             torch.arange(input_ids.shape[0]).view(-1, 1).repeat(1, my_model.args.num_beams).view(-1).to(
                 input_ids.device)
@@ -40,9 +43,9 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
 
 
-        return None,None
+        return None,None,None
 
-    # TODO: bellow for training -------------------------------------
+    # bellow for training -------------------------------------
 
     if 'supsup' in my_model.args.baseline:
         if 'mtl' in my_model.args.baseline:
@@ -66,7 +69,7 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
             logits = outputs.logits
 
         elif 'softmask' in my_model.args.baseline and prune_model and 'distill' in prune_loss:
-            #TODO: use the output of decoder to conduct distillation, move to here
+            # use the output of decoder to conduct distillation, move to here
             # we also need to add some mask
             kd_loss = utils.model.DistillKL(1)
 
@@ -122,4 +125,4 @@ def run_forward(input_ids,attention_mask,task,labels,my_model,self_fisher,masks=
 
         loss += hat.loss_compute(masks, mask_pre, my_model.args)
 
-    return loss, logits
+    return loss, logits,outputs.last_hidden_state

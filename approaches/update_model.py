@@ -44,13 +44,13 @@ def update(self,model,optimizer,outputs,loss,writer,lr_scheduler,progress_bar,gl
                     p.data, -self.args.thres_emb, self.args.thres_emb)
 
     if accelerator.is_main_process:
-        utils.util.log_loss(
+        utils.model.log_loss(
             writer, scalar_value=loss.item(), global_step=global_step)
         if outputs.sum_loss is not None:
-            utils.util.log_loss(writer, loss_name=' summerization loss', scalar_value=outputs.sum_loss.item(
+            utils.model.log_loss(writer, loss_name=' summerization loss', scalar_value=outputs.sum_loss.item(
             ), global_step=global_step)
         if outputs.contrast_loss is not None:
-            utils.util.log_loss(writer, loss_name=' contrast loss', scalar_value=outputs.contrast_loss.item(
+            utils.model.log_loss(writer, loss_name=' contrast loss', scalar_value=outputs.contrast_loss.item(
             ), global_step=global_step)
 
 

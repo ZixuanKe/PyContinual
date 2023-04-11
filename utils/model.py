@@ -238,15 +238,6 @@ def prepare_sequence_finetune(args):
 
     args.all_tasks = data
 
-
-    if args.classifier_lr is None: args.classifier_lr = (5e-4 + 5e-3) / 2.0  # important for adapter
-    if args.prompt_lr is None: args.prompt_lr = 5e-3 #  args.prompt_lr = {5e-2,5e-3}
-    if args.adapter_lr is None: args.adapter_lr = 5e-4  # (5e-4 + 5e-3)/2.0
-
-    # if 'DiaperChamp' in args.task_name:
-    #     args.num_train_epochs = 50
-    # TODO: for some reasons, this one is always bad
-
     if args.eval_only:
         output = args.base_dir + "/seq" + str(args.idrandom) + "/seed" + str(args.seed) + "/" + str(args.baseline)  + '/' + str(data[args.ft_task]) + "_lm/"
         ckpt = args.base_dir + "/seq" + str(args.idrandom) + "/seed" + str(args.seed) + "/" + str( args.baseline)  + '/' + str(data[args.ft_task]) + "_lm/"
@@ -324,168 +315,177 @@ def prepare_sequence_finetune(args):
     args.classification = args.asc_datasets + args.ccd_datasets + args.ner_datasets
     args.generation = args.dialogue_datasets + args.summerization_datasets
 
-    if args.lamb is None:
-        args.lamb = 0.75
-        if 'ewc' in args.baseline:
-            args.lamb = 5000
-            args.per_device_train_pool_batch_size = 8
-
-
+    # these two are for CAT baseline
     args.is_reference = False
     args.is_transfer = False
 
 
-    # if we use default
-    #TODO: supsup need to add (see the pool)
-    if args.task_name in args.ccd_datasets:
-        args.ntasks = 5
-        args.max_source_length = 128
-        args.num_train_epochs = 100
+    if args.use_predefine_args: # you can choose not to use them
 
-        if 'adapter_ctr' in args.baseline:
-            args.per_device_train_batch_size = 16
-        else:
-            args.per_device_train_batch_size = 32
-
-        args.per_device_eval_batch_size = 32
-        args.sample_num_per_class = 500
-        args.sample_cap = None
-        args.num_beams = None
-        args.val_max_target_length = None
-        args.val_min_target_length = None
-        args.no_repeat_ngram_size = None
-        args.per_device_train_pool_batch_size = 8
-        args.pad_to_max_length = True
-        args.patient = 10
-
-        if 'prompt' in args.baseline or 'l2p' in args.baseline:
-            args.prompt_lr = 5e-3
-            args.learning_rate = 5e-5
-
-    if args.task_name in args.dialogue_datasets:
-        args.max_source_length = 128
-
-        if 'adapter_ctr' in args.baseline:
-            args.num_train_epochs = 30
-        else:
-            args.num_train_epochs = 50
-        args.per_device_train_batch_size = 16
-        args.per_device_eval_batch_size = 32
-        args.sample_num_per_class = None
-        args.sample_cap = None
-        args.num_beams = 4
-        args.val_max_target_length = 200
-        args.val_min_target_length = 30
-        args.no_repeat_ngram_size = 3
-        args.per_device_train_pool_batch_size = 2
-        args.pad_to_max_length = True
-        args.patient = 50
-
-        if 'prompt' in args.baseline or 'l2p' in args.baseline:
-            args.prompt_lr = 0.05
-            args.learning_rate = 0.005
+        if args.lamb is None:
+            args.lamb = 0.75
+            if 'ewc' in args.baseline:
+                args.lamb = 5000
+                args.per_device_train_pool_batch_size = 8
 
 
-    if args.task_name in args.asc_datasets:
-        #TODO: can we get siomilar results as before in RoBERTa?
-        args.ntasks = 19
-        args.max_source_length = 128
-        # 100 is not neccessary good
-        args.num_train_epochs = 100
-        # if args.num_train_epochs is None:
-        # if 'SemEval' in args.task_name:
-        #     args.num_train_epochs = 20
-        # else:
-        #     args.num_train_epochs = 100
+        if args.classifier_lr is None: args.classifier_lr = (5e-4 + 5e-3) / 2.0  # important for adapter
+        if args.prompt_lr is None: args.prompt_lr = 5e-3  # args.prompt_lr = {5e-2,5e-3}
+        if args.adapter_lr is None: args.adapter_lr = 5e-4  # (5e-4 + 5e-3)/2.0
 
-        if 'adapter_ctr' in args.baseline:
-            args.per_device_train_batch_size = 16
-        else:
-            args.per_device_train_batch_size = 32
-        args.per_device_eval_batch_size = 32
-        args.sample_num_per_class = None
-        args.sample_cap = None
-        args.num_beams = None
-        args.val_max_target_length = None
-        args.val_min_target_length = None
-        args.no_repeat_ngram_size = None
-        args.per_device_train_pool_batch_size = 8
-        args.pad_to_max_length = True
-        args.patient = 5
 
-        if 'prompt' in args.baseline or 'l2p' in args.baseline:
-            args.prompt_lr = 5e-3
-            args.learning_rate = 5e-5
+        if args.task_name in args.ccd_datasets:
+            args.ntasks = 5
+            args.max_source_length = 128
             args.num_train_epochs = 100
 
-    if args.task_name in args.ner_datasets:
-        args.ntasks = 5
-        args.max_source_length = 128
-
-        args.num_train_epochs = 100
-
-        if 'adapter_ctr' in args.baseline:
-            args.per_device_train_batch_size = 16
-        else:
-            args.per_device_train_batch_size = 32
-        args.per_device_eval_batch_size = 128
-        args.sample_num_per_class = 50  #50 need to tune
-        if 'sample_cap' in args.baseline:
-            args.sample_cap = 200
-        else:
-            args.sample_cap = None
-        args.num_beams = None
-        args.val_max_target_length = None
-        args.val_min_target_length = None
-        args.no_repeat_ngram_size = None
-        args.per_device_train_pool_batch_size = 8
-        args.pad_to_max_length = True
-
-        args.patient = 50
-
-        if 'prompt' in args.baseline or 'l2p' in args.baseline:
-            args.prompt_lr = 5e-3
-            args.learning_rate = 5e-5
-            args.num_train_epochs = 100
-
-    if args.task_name in args.summerization_datasets:
-
-        if 'adapter_ctr' in args.baseline:
-            args.num_train_epochs = 30
-            args.per_device_train_batch_size = 2
-
-        else:
-            args.num_train_epochs = 50
-            args.per_device_train_batch_size = 4
-        args.per_device_eval_batch_size = 16
-        args.max_source_length = 1024 # important
-        args.sample_cap = None
-        args.sample_num_per_class = None
-        args.num_beams = 4
-        args.val_max_target_length = 200
-        args.val_min_target_length = 30
-        args.no_repeat_ngram_size = 3
-        args.per_device_train_pool_batch_size = 2
-        args.pad_to_max_length = True
-        args.patient = 50
-
-        if 'prompt' in args.baseline or 'l2p' in args.baseline:
-            args.prompt_lr = 0.05
-            args.learning_rate = 0.005
-            if 'prompt' in args.baseline:
-                args.max_source_length = 1000
-            elif 'l2p' in args.baseline:
-                args.max_source_length = 960
-
-
-        if 'supsup' in args.baseline:
-            if 'icsi' in args.task_name:
-                args.adapter_lr = 5e-3
+            if 'adapter_ctr' in args.baseline:
+                args.per_device_train_batch_size = 16
             else:
-                args.adapter_lr = 5e-2
+                args.per_device_train_batch_size = 32
 
-    args.fp16 = True
-    args.warmup_ratio = 0.5
+            args.per_device_eval_batch_size = 32
+            args.sample_num_per_class = 500
+            args.sample_cap = None
+            args.num_beams = None
+            args.val_max_target_length = None
+            args.val_min_target_length = None
+            args.no_repeat_ngram_size = None
+            args.per_device_train_pool_batch_size = 8
+            args.pad_to_max_length = True
+            args.patient = 10
+
+            if 'prompt' in args.baseline or 'l2p' in args.baseline:
+                args.prompt_lr = 5e-3
+                args.learning_rate = 5e-5
+
+        if args.task_name in args.dialogue_datasets:
+            args.max_source_length = 128
+
+            if 'adapter_ctr' in args.baseline:
+                args.num_train_epochs = 30
+            else:
+                args.num_train_epochs = 50
+            args.per_device_train_batch_size = 16
+            args.per_device_eval_batch_size = 32
+            args.sample_num_per_class = None
+            args.sample_cap = None
+            args.num_beams = 4
+            args.val_max_target_length = 200
+            args.val_min_target_length = 30
+            args.no_repeat_ngram_size = 3
+            args.per_device_train_pool_batch_size = 2
+            args.pad_to_max_length = True
+            args.patient = 50
+
+            if 'prompt' in args.baseline or 'l2p' in args.baseline:
+                args.prompt_lr = 0.05
+                args.learning_rate = 0.005
+
+
+        if args.task_name in args.asc_datasets:
+            #TODO: can we get siomilar results as before in RoBERTa?
+            args.ntasks = 19
+            args.max_source_length = 128
+            # 100 is not neccessary good
+            args.num_train_epochs = 100
+            # if args.num_train_epochs is None:
+            # if 'SemEval' in args.task_name:
+            #     args.num_train_epochs = 20
+            # else:
+            #     args.num_train_epochs = 100
+
+            if 'adapter_ctr' in args.baseline:
+                args.per_device_train_batch_size = 16
+            else:
+                args.per_device_train_batch_size = 32
+            args.per_device_eval_batch_size = 32
+            args.sample_num_per_class = None
+            args.sample_cap = None
+            args.num_beams = None
+            args.val_max_target_length = None
+            args.val_min_target_length = None
+            args.no_repeat_ngram_size = None
+            args.per_device_train_pool_batch_size = 8
+            args.pad_to_max_length = True
+            args.patient = 5
+
+            if 'prompt' in args.baseline or 'l2p' in args.baseline:
+                args.prompt_lr = 5e-3
+                args.learning_rate = 5e-5
+                args.num_train_epochs = 100
+
+        if args.task_name in args.ner_datasets:
+            args.ntasks = 5
+            args.max_source_length = 128
+
+            args.num_train_epochs = 100
+
+            if 'adapter_ctr' in args.baseline:
+                args.per_device_train_batch_size = 16
+            else:
+                args.per_device_train_batch_size = 32
+            args.per_device_eval_batch_size = 128
+            args.sample_num_per_class = 50  #50 need to tune
+            if 'sample_cap' in args.baseline:
+                args.sample_cap = 200
+            else:
+                args.sample_cap = None
+            args.num_beams = None
+            args.val_max_target_length = None
+            args.val_min_target_length = None
+            args.no_repeat_ngram_size = None
+            args.per_device_train_pool_batch_size = 8
+            args.pad_to_max_length = True
+
+            args.patient = 50
+
+            if 'prompt' in args.baseline or 'l2p' in args.baseline:
+                args.prompt_lr = 5e-3
+                args.learning_rate = 5e-5
+                args.num_train_epochs = 100
+
+        if args.task_name in args.summerization_datasets:
+            args.ntasks = 6
+
+            args.dataset_type = 'full'
+            if 'adapter_ctr' in args.baseline:
+                args.num_train_epochs = 30
+                args.per_device_train_batch_size = 2
+
+            else:
+                args.num_train_epochs = 50
+                args.per_device_train_batch_size = 4
+            args.per_device_eval_batch_size = 16
+            args.max_source_length = 1024 # important
+            args.sample_cap = None
+            args.sample_num_per_class = None
+            args.num_beams = 4
+            args.val_max_target_length = 200
+            args.val_min_target_length = 30
+            args.no_repeat_ngram_size = 3
+            args.per_device_train_pool_batch_size = 2
+            args.pad_to_max_length = True
+            args.patient = 50
+
+            if 'prompt' in args.baseline or 'l2p' in args.baseline:
+                args.prompt_lr = 0.05
+                args.learning_rate = 0.005
+                if 'prompt' in args.baseline:
+                    args.max_source_length = 1000
+                elif 'l2p' in args.baseline:
+                    args.max_source_length = 960
+
+
+            if 'supsup' in args.baseline:
+                if 'icsi' in args.task_name:
+                    args.adapter_lr = 5e-3
+                else:
+                    args.adapter_lr = 5e-2
+
+        args.fp16 = True
+        args.warmup_ratio = 0.5
+
 
     return args
 

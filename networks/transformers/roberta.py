@@ -138,7 +138,6 @@ class MyRobertaAttention(nn.Module):
         encoder_attention_mask=None,
         past_key_value=None,
         output_attentions=False,
-        down_mask=None,
         **kwargs
 
     ):

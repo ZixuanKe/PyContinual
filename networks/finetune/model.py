@@ -77,7 +77,7 @@ class MyModel(nn.Module):
 
             loss = self.kd_loss(teacher_outputs.hidden_states[-1], outputs.hidden_states[-1])  # no need for mean
 
-        # TODO give mask, even if it could be None
+        # give mask, even if it could be None
         elif self.args.task_name in self.args.classification:
             cls_labels = inputs['cls_labels']
             loss, logits, hidden_states = classification.run_forward(input_ids, attention_mask, task, cls_labels,self,self_fisher,masks, mask_pre,

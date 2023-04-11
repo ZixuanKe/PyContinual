@@ -331,6 +331,7 @@ def parse_args():
     parser.add_argument(
         "--reduction_factor", type=float, default=16, help="Ratio of tokens to mask for masked language modeling loss"
     )
+    parser.add_argument('--use_predefine_args', action='store_true',help='whether to use the pre-defined arguments in the paper')
     args = parser.parse_args()
 
     return args

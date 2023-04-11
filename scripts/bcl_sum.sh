@@ -21,10 +21,10 @@ do
         CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node 4 --use_env finetune.py \
         --ft_task ${ft_task} \
         --idrandom ${idrandom} \
-        --baseline 'adapter_ctr_asc_bert' \
+        --baseline 'adapter_bcl_sum_bart' \
         --seed ${seed[$round]} \
-        --sequence_file 'asc' \
-        --base_model_name_or_path 'bert-base-uncased' \
+        --sequence_file 'sum' \
+        --base_model_name_or_path facebook/bart-base \
         --use_predefine_args
       done
   done

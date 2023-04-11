@@ -46,19 +46,12 @@ do
         CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch --nproc_per_node 4 --use_env --master_port 12942 finetune.py \
         --ft_task ${ft_task} \
         --idrandom ${idrandom} \
-        --ntasks 19 \
         --baseline 'adapter_bcl_asc_bert' \
         --seed ${seed[$round]} \
-        --per_device_eval_batch_size 32 \
         --sequence_file 'asc' \
-        --per_device_train_batch_size 32 \
         --base_model_name_or_path 'bert-base-uncased' \
-        --warmup_ratio 0.5 \
-        --patient 50 \
-        --fp16 \
-        --max_source_length 128 \
-        --pad_to_max_length \
-        --base_dir <your dataset directory>
+        --base_dir <your dataset directory> \
+        --use_predefine_args #use pre-defined arguments
       done
   done
 done
@@ -76,7 +69,8 @@ Above shows a typical command to run PyContinual v1.0.0 Some of the arguments ar
     - adapter_bcl, adapter_ctr, adapter_hat, adapter_cat
     - l2p, supsup, derpp, dytox, lamaml, mer, ldbr, dualprompt, agem
   - `base_dir`: you need to make sure your dataset is in this directory 
-    
+  - `use_predefine_args`: we have provided some pre-defined arguments in ./utils/model.py. This argument will tell the program to use the pre-defined arguments
+
 If you have questions about what papers the baseline systems refer to or how to download the data. Please check the [README in Main Branch](https://github.com/ZixuanKe/PyContinual/v0.0.0)
 
 ## Contact
