@@ -34,7 +34,7 @@ def asc_config(parser):
     parser.add_argument('--first_id', action='store_true',help='use first ID as the ID for testing, only useful in DIL setting')
     parser.add_argument('--last_id', action='store_true',help='use last ID as the ID for testing, only useful in DIL setting')
     parser.add_argument('--ent_id', action='store_true',help='use entropy to decide ID, only useful in DIL setting')
-    parser.add_argument('--nepochs', type=int, default=100,help='the largest epochs to run')
+    parser.add_argument('--nepochs', type=int, default=None,help='the largest epochs to run')
     parser.add_argument('--sbatch',default=64,type=int,required=False,help='batch size')
     parser.add_argument('--class_per_task', type=int, default=2,help='how many classes per task. Useful when prepare the partition-based data, e.g. 20Newsgroup can be partitioned into differnet number of tasks based on this argument')
 
@@ -120,9 +120,9 @@ def asc_config(parser):
     parser.add_argument('--gradient_accumulation',type=float,default=2)
     parser.add_argument('--eval_steps',type=float,default=200)
     parser.add_argument('--logging_steps',type=float,default=200)
-    parser.add_argument('--xusemeval_num_train_epochs', type=int, default=0)
-    parser.add_argument('--bingdomains_num_train_epochs', type=int, default=0)
-    parser.add_argument('--bingdomains_num_train_epochs_multiplier', default=0)
+    parser.add_argument('--xusemeval_num_train_epochs', type=int, default=None)
+    parser.add_argument('--bingdomains_num_train_epochs', type=int, default=None)
+    parser.add_argument('--bingdomains_num_train_epochs_multiplier', default=None)
     parser.add_argument('--w2v_hidden_size', type=int, default=300)
     parser.add_argument('--capsule_nhid', type=int, default=2000)
     parser.add_argument('--capsule_nhid_output', type=int, default=768)
@@ -237,7 +237,7 @@ def train_config(parser):
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--num_train_epochs",
-                        default=6,
+                        default=None,
                         type=int,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",

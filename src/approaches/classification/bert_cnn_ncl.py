@@ -30,7 +30,7 @@ class Appr(ApprBase):
         self.optimizer=self._get_optimizer(lr)
 
         # Loop epochs
-        for e in range(self.nepochs):
+        for e in range(self.args.num_train_epochs):
             # Train
             clock0=time.time()
             iter_bar = tqdm(train, desc='Train Iter (loss=X.XXX)')
@@ -63,7 +63,7 @@ class Appr(ApprBase):
 
         # Restore best
         utils.set_model_(self.model,best_model)
-        print('saved: ') #TODO: debug, why so well on 20newsgroup
+        print('saved: ')
         return
 
 

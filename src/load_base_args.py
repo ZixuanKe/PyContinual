@@ -11,22 +11,18 @@ def load():
         args.xusemeval_num_train_epochs = 10
         args.bingdomains_num_train_epochs = 30
         args.bingdomains_num_train_epochs_multiplier = 3
-        args.nepochs = 100
         args.nclasses = 3
 
 
     if args.task == 'dsc': #document sentiment classication
         args.ntasks = 10
         args.num_train_epochs = 20
-        args.nepochs = 100
         args.nclasses = 2
 
-
-    if args.task == 'newsgroup': #aspect sentiment classication
+    if args.task == 'newsgroup': #topic classication
         args.ntasks = 10
         args.class_per_task = 2
         args.num_train_epochs = 10
-        args.nepochs = 100
         args.nclasses = 2
 
 

@@ -17,11 +17,10 @@
 # PyContinual (An Easy and Extendible Framework for Continual Learning)
 
 ## News
-
-[comment]: <> (**[11/24/2022]** Our latest survey on continual learning of NLP tasks is now in [arkiv]&#40;https://arxiv.org/abs/2211.12701&#41;. Take a look if you are interested in CL and NLP.  )
-**[Jan. 2023]** Another work on **continual learning of LMs** is now accepted at [**ICLR23**](https://arxiv.org/abs/2302.03241)  
-**[Oct. 2022]** If you are interested in **continual learning of language models**, check our [**EMNLP22** paper](https://arxiv.org/abs/2210.05549) and the [code](https://github.com/UIC-Liu-Lab/CPT)!   
-**[Oct. 2022]** If you are interested in more baselines, tasks (extraction and generation), LMs (RoBERTa, BART) and efficient training (fp16, multi-node), check our [**developing branch**](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
+🔥 If you're here for the code from our latest [EMNLP23](https://arxiv.org/abs/2310.09436) paper, please check the [developing branch](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0).  We have added [continual_finetune.ipynb](https://github.com/ZixuanKe/PyContinual/tree/main/examples/continual_finetune.ipynb) as a self-contained example of the soft-masking scenario. It runs well without GPUs!         
+🔥 Our works on **continual pre-training of LMs** have now been accepted at [EMNLP22](https://arxiv.org/abs/2210.05549) and [ICLR23](https://arxiv.org/abs/2302.03241). Check out our [repo](https://github.com/UIC-Liu-Lab/ContinualLM) for continual pre-training / post-training!   
+🔥 Our latest **survey on continual learning of NLP** is now in [arXiv](https://arxiv.org/abs/2211.12701). Take a look if you are interested in CL and NLP!  
+🔥 Are you interested in additional baselines, tasks (including extraction and generation), LMs (such as RoBERTa and BART), and efficient training methods (like fp16 and multi-node)? Check out our [developing branch](https://github.com/ZixuanKe/PyContinual/tree/dev/v1.0.0)!
 
 ## Easy to Use
 
