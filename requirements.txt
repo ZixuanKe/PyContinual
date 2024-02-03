@@ -1,0 +1,7 @@
+et-xmlfile==1.1.0
+numpy @ file:///D:/Trabajo/rest-mex_2022_sentiment_data_training/numpy-1.24.2-cp311-cp311-win_amd64.whl
+openpyxl==3.1.2
+pandas @ file:///D:/Trabajo/rest-mex_2022_sentiment_data_training/pandas-1.5.3-cp311-cp311-win_amd64.whl
+python-dateutil==2.8.2
+pytz==2022.7.1
+six==1.16.0

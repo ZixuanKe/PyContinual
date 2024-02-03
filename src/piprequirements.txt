@@ -1,0 +1,13 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: linux-64
+transformers==4.10.2
+zipp==3.6.0
+tokenizers==0.10.3
+pyparsing==2.4.7
+packaging==21.2
+quadprog==0.1.10
+pyyaml==6.0
+filelock==3.3.2
+importlib-metadata==4.8.1
+huggingface-hub==0.1.1
